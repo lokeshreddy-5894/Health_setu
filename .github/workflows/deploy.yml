@@ -30,12 +30,15 @@ jobs:
         shell: bash
         run: |
           mkdir -p _site
-          cp -v *.html _site/
-          cp -v *.css _site/
-          cp -v *.js _site/
+          # Use find instead of globs so missing file types don't cause errors
+          find . -maxdepth 1 -name "*.html" -exec cp -v {} _site/ \;
+          find . -maxdepth 1 -name "*.css"  -exec cp -v {} _site/ \;
+          find . -maxdepth 1 -name "*.js"   -exec cp -v {} _site/ \;
+          # Copy the scripts subfolder (used by db.js / lint at runtime)
+          if [ -d scripts ]; then cp -r scripts _site/scripts; fi
           echo "Published files:"
           ls -la _site
-          test -f _site/index.html
+          test -f _site/index.html || (echo "ERROR: index.html missing!" && exit 1)
 
       - name: Upload static site artifact
         uses: actions/upload-pages-artifact@v3
