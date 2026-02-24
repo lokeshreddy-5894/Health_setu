@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Appointments - HealthSetu</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="topbar-placeholder"></div>
+<div class="app-layout">
+  <nav class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Patient Menu</div>
+      <a class="sidebar-link" href="patient-dashboard.html"><span class="s-icon">&#127968;</span> Dashboard</a>
+      <a class="sidebar-link active" href="patient-appointments.html"><span class="s-icon">&#128197;</span> Appointments</a>
+      <a class="sidebar-link" href="patient-medicines.html"><span class="s-icon">&#128138;</span> Medicines</a>
+      <a class="sidebar-link" href="patient-health.html"><span class="s-icon">&#129658;</span> Health Data</a>
+      <a class="sidebar-link" href="patient-reports.html"><span class="s-icon">&#128196;</span> Reports</a>
+      <a class="sidebar-link" href="patient-profile.html"><span class="s-icon">&#128100;</span> My Profile</a>
+    </div>
+    <div class="sidebar-footer">
+      <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:flex-start;gap:8px;" onclick="HS.clearSession();window.location.href='login-patient.html'">Sign Out</button>
+    </div>
+  </nav>
+  <div class="main-content">
+    <div class="page-header-row anim-fade-up">
+      <div class="page-header"><h1>My Appointments</h1><p>All your past and upcoming consultations</p></div>
+      <button class="btn btn-primary" onclick="openBookModal()">+ Book Appointment</button>
+    </div>
+    <div class="card anim-fade-up-1">
+      <div class="card-header">
+        <select class="form-input" style="width:auto;" onchange="render(this.value)" id="status-filter">
+          <option value="">All Status</option>
+          <option value="pending">Pending</option>
+          <option value="scheduled">Scheduled</option>
+          <option value="completed">Completed</option>
+        </select>
+      </div>
+      <div id="appt-list"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-book">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Book Appointment</div><div class="modal-subtitle">Select from available doctor slots</div></div>
+    <div class="form-group"><label class="form-label">Describe your symptoms *</label><textarea class="form-input" rows="4" placeholder="Tell us what you're feeling..." id="b-symp"></textarea></div>
+    <div class="form-group"><label class="form-label">Available Time Slot *</label><select class="form-input" id="b-slot"></select></div>
+    <div class="form-group"><label class="form-label">Preferred Window (for waitlist)</label>
+      <select class="form-input" id="b-window">
+        <option value="any">Any time</option>
+        <option value="morning">Morning</option>
+        <option value="afternoon">Afternoon</option>
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Preferred Date (optional)</label><input class="form-input" type="date" id="b-pref-date"></div>
+    <div class="form-group"><label class="form-label">Appointment Type</label>
+      <select class="form-input" id="b-type"><option>General Consultation</option><option>Follow-up</option><option>Emergency</option><option>Lab Test</option></select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-book')">Cancel</button>
+      <button class="btn btn-outline" onclick="joinWaitlist()">Join Waitlist</button>
+      <button class="btn btn-primary" onclick="bookAppt()">Book Appointment</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-postpone">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Postpone Appointment</div><div class="modal-subtitle">Choose a new available slot</div></div>
+    <div class="form-group"><label class="form-label">New Time Slot *</label><select class="form-input" id="p-slot"></select></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-postpone')">Cancel</button>
+      <button class="btn btn-primary" onclick="savePostpone()">Save New Slot</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap"></div>
+<script src="db.js"></script>
+<script>
+let postponeApptId = null;
+
+function init() {
+  const s = HS.requireAuth('patient');
+  if (!s) return;
+  document.getElementById('topbar-placeholder').innerHTML = buildTopbar(s.user.name, 'patient', '#1a6bff');
+  render();
+  setupModals();
+}
+
+function resolveDoctorIdForPatient(patientId) {
+  const patients = HS.getPatients();
+  const pt = patients.find(p => p.id === patientId);
+  if (!pt) return null;
+  if (pt.assignedDoctor) return pt.assignedDoctor;
+
+  const fallbackDoctorId = HS.getDoctors()[0]?.id || null;
+  if (!fallbackDoctorId) return null;
+
+  pt.assignedDoctor = fallbackDoctorId;
+  pt.updatedAt = HS.now();
+  HS.savePatients(patients);
+
+  const s = HS.getSession();
+  if (s && s.role === 'patient' && s.user && s.user.id === patientId) {
+    s.user.assignedDoctor = fallbackDoctorId;
+    HS.setSession(s.user, 'patient');
+  }
+  return fallbackDoctorId;
+}
+
+function render(statusFilter='') {
+  const s = HS.getSession();
+  let appts = HS.getAppointments().filter(a => a.patientId === s.user.id);
+  if (statusFilter) appts = appts.filter(a => a.status === statusFilter);
+
+  const el = document.getElementById('appt-list');
+  el.innerHTML = appts.length ? appts.map(a => `
+    <div class="appt-row">
+      <div class="appt-body">
+        <div class="appt-date">${a.datetime ? 'Scheduled: ' + HS.fmtDate(a.datetime) : 'Date pending doctor confirmation'}</div>
+        <div style="font-size:12px;margin:4px 0;"><span class="chip">${a.type}</span></div>
+        <div class="appt-symp"><strong>Symptoms:</strong> ${a.symptoms}</div>
+        <div style="font-size:11px;color:var(--g400);margin-top:5px;">Booked: ${HS.fmtShort(a.createdAt)}</div>
+      </div>
+      <div class="appt-actions" style="flex-direction:column;align-items:flex-end;gap:8px;">
+        ${renderBadge(a.status, HS.statusBadge(a.status))}
+        ${a.status !== 'completed' ? `<button class="btn btn-outline btn-xs" onclick="openPostpone('${a.id}')">Postpone</button>` : ''}
+      </div>
+    </div>`).join('') : '<div class="empty-state"><div class="empty-icon">A</div><p>No appointments yet. Book your first one!</p></div>';
+}
+
+function openBookModal() {
+  refreshBookSlots();
+  openModal('modal-book');
+}
+
+function refreshBookSlots() {
+  const s = HS.getSession();
+  if (!s) return;
+  const slotEl = document.getElementById('b-slot');
+  const doctorId = resolveDoctorIdForPatient(s.user.id);
+
+  if (!doctorId) {
+    slotEl.innerHTML = '<option value="">No doctors available right now</option>';
+    slotEl.disabled = true;
+    return;
+  }
+
+  const slots = HS.getAvailableSlots(doctorId);
+  if (!slots.length) {
+    slotEl.innerHTML = '<option value="">No slots available in next 7 days</option>';
+    slotEl.disabled = true;
+    return;
+  }
+
+  slotEl.disabled = false;
+  slotEl.innerHTML = slots.map((slot, i) => `<option value="${slot}" ${i===0?'selected':''}>${HS.fmtDate(slot)}</option>`).join('');
+}
+
+function clearBookForm() {
+  document.getElementById('b-symp').value = '';
+  document.getElementById('b-pref-date').value = '';
+  document.getElementById('b-window').value = 'any';
+}
+
+function bookAppt() {
+  const symp = document.getElementById('b-symp').value.trim();
+  const dt = document.getElementById('b-slot').value;
+  const type = document.getElementById('b-type').value;
+
+  if (!symp) { toast('Please describe your symptoms', 'error'); return; }
+  if (!dt) { toast('Please choose an available slot', 'error'); return; }
+
+  const s = HS.getSession();
+  const doctorId = resolveDoctorIdForPatient(s.user.id);
+  if (!doctorId) { toast('No doctors available right now', 'error'); return; }
+  const appts = HS.getAppointments();
+  appts.unshift({
+    id: 'ap' + HS.uid(),
+    patientId: s.user.id,
+    doctorId,
+    datetime: dt,
+    type,
+    symptoms: symp,
+    status: 'pending',
+    createdAt: HS.now()
+  });
+
+  HS.saveAppointments(appts);
+  closeModal('modal-book');
+  clearBookForm();
+  refreshBookSlots();
+  render(document.getElementById('status-filter').value);
+  toast('Appointment booked! Your doctor will confirm soon.', 'success');
+}
+
+function joinWaitlist() {
+  const s = HS.getSession();
+  const doctorId = resolveDoctorIdForPatient(s.user.id);
+  const symp = document.getElementById('b-symp').value.trim();
+  const type = document.getElementById('b-type').value;
+  const preferredWindow = document.getElementById('b-window').value;
+  const preferredDate = document.getElementById('b-pref-date').value;
+
+  if (!doctorId) { toast('No doctors available right now', 'error'); return; }
+  if (!symp) { toast('Please describe your symptoms', 'error'); return; }
+
+  HS.addToWaitlist({
+    patientId: s.user.id,
+    doctorId,
+    symptoms: symp,
+    type,
+    preferredWindow,
+    preferredDate
+  });
+
+  closeModal('modal-book');
+  clearBookForm();
+  toast('Added to waitlist. We will auto-assign when a slot opens.', 'success');
+}
+
+function openPostpone(id) {
+  postponeApptId = id;
+  const s = HS.getSession();
+  const appt = HS.getAppointments().find(a => a.id === id && a.patientId === s.user.id);
+  if (!appt) { toast('Appointment not found', 'error'); return; }
+
+  const doctorId = appt.doctorId || resolveDoctorIdForPatient(s.user.id);
+  const slotEl = document.getElementById('p-slot');
+
+  if (!doctorId) {
+    slotEl.innerHTML = '<option value="">No doctor assigned yet</option>';
+    slotEl.disabled = true;
+    openModal('modal-postpone');
+    return;
+  }
+
+  const slots = HS.getAvailableSlots(doctorId, appt.id);
+  if (!slots.length) {
+    slotEl.innerHTML = '<option value="">No slots available in next 7 days</option>';
+    slotEl.disabled = true;
+    openModal('modal-postpone');
+    return;
+  }
+
+  slotEl.disabled = false;
+  slotEl.innerHTML = slots.map((slot, i) => `<option value="${slot}" ${i===0?'selected':''}>${HS.fmtDate(slot)}</option>`).join('');
+  openModal('modal-postpone');
+}
+
+function savePostpone() {
+  if (!postponeApptId) return;
+  const slot = document.getElementById('p-slot').value;
+  if (!slot) { toast('Please choose a slot', 'error'); return; }
+
+  const appts = HS.getAppointments();
+  const a = appts.find(x => x.id === postponeApptId);
+  if (!a) { toast('Appointment not found', 'error'); return; }
+
+  const oldSlot = a.datetime;
+  const oldDoctorId = a.doctorId;
+  a.datetime = slot;
+  if (a.status === 'pending') a.status = 'scheduled';
+  a.updatedAt = HS.now();
+  HS.saveAppointments(appts);
+  const autoAssigned = oldSlot && oldSlot !== slot ? HS.tryAssignFreedSlot(oldDoctorId, oldSlot, 'Auto-rescheduled from waitlist') : null;
+
+  postponeApptId = null;
+  closeModal('modal-postpone');
+  render(document.getElementById('status-filter').value);
+  toast('Appointment postponed successfully.', 'success');
+  if (autoAssigned) toast(`Waitlist patient auto-booked: ${HS.patientName(autoAssigned.patientId)}`, 'info');
+}
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Patients - HealthSetu Doctor</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+.patient-detail-card { background: white; border: 1px solid var(--g200); border-radius: 14px; padding: 0; overflow: hidden; }
+.pdc-header { background: linear-gradient(135deg, var(--navy), var(--navy-mid)); padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; }
+.pdc-avatar { width: 48px; height: 48px; border-radius: 50%; background: rgba(255,255,255,.15); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 800; color: white; }
+.pdc-name { font-size: 16px; font-weight: 700; color: white; }
+.pdc-email { font-size: 12px; color: rgba(255,255,255,.65); margin-top: 2px; }
+.pdc-body { padding: 20px 24px; }
+.tab-bar { display: flex; background: var(--g100); border-radius: 10px; padding: 4px; gap: 4px; margin-bottom: 18px; }
+.tab-btn { flex: 1; padding: 8px; border: none; background: transparent; border-radius: 7px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: 'Outfit',sans-serif; color: var(--g500); transition: all .15s; }
+.tab-btn.active { background: white; color: var(--navy); font-weight: 700; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+.patients-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.report-row { padding: 10px 12px; background: var(--g50); border-radius: 9px; margin-bottom: 8px; border-left: 3px solid var(--blue); }
+.record-row { padding: 10px 12px; background: var(--g50); border-radius: 9px; margin-bottom: 8px; border-left: 3px solid var(--navy-mid); }
+</style>
+</head>
+<body>
+<div id="topbar-placeholder"></div>
+<div class="app-layout">
+  <nav class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Doctor Menu</div>
+      <a class="sidebar-link" href="doctor-dashboard.html"><span class="s-icon">&#127968;</span> Dashboard</a>
+      <a class="sidebar-link" href="doctor-appointments.html"><span class="s-icon">&#128197;</span> Appointments</a>
+      <a class="sidebar-link active" href="doctor-patients.html"><span class="s-icon">&#128101;</span> My Patients</a>
+      <a class="sidebar-link" href="doctor-notices.html"><span class="s-icon">&#128227;</span> Notices</a>
+    </div>
+    <div class="sidebar-footer">
+      <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:flex-start;gap:8px;" onclick="HS.clearSession();window.location.href='login-doctor.html'">Sign Out</button>
+    </div>
+  </nav>
+
+  <div class="main-content">
+    <div class="page-header anim-fade-up">
+      <h1>My Patients</h1>
+      <p>Manage appointments, medicines, BP/Weight, and patient reports (including X-ray)</p>
+    </div>
+    <div class="patients-grid anim-fade-up-1" id="patients-grid"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-med">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Add Medicine Reminder</div>
+      <div class="modal-subtitle">For <strong id="med-pt-name">patient</strong></div>
+    </div>
+    <div class="form-grid-2">
+      <div class="form-group"><label class="form-label">Medicine Name *</label><input class="form-input" placeholder="e.g. Paracetamol 500mg" id="m-name"></div>
+      <div class="form-group"><label class="form-label">Due Date & Time</label><input class="form-input" type="datetime-local" id="m-due"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Instructions *</label><textarea class="form-input" rows="3" id="m-instr" placeholder="Dosage and instructions"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-med')">Cancel</button>
+      <button class="btn btn-primary" onclick="addMed()">Add Reminder</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-vitals">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Update Vitals</div>
+      <div class="modal-subtitle">Set BP and Weight for <strong id="v-pt-name">patient</strong></div>
+    </div>
+    <div class="form-grid-2">
+      <div class="form-group"><label class="form-label">Blood Pressure *</label><input class="form-input" id="v-bp" placeholder="e.g. 120/80"></div>
+      <div class="form-group"><label class="form-label">Weight (kg) *</label><input class="form-input" id="v-weight" placeholder="e.g. 72"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-vitals')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveVitals()">Save Vitals</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-report">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Upload Patient Report</div>
+      <div class="modal-subtitle">For <strong id="r-pt-name">patient</strong></div>
+    </div>
+    <div class="form-grid-2">
+      <div class="form-group"><label class="form-label">Report Type *</label>
+        <select class="form-input" id="r-type">
+          <option>General Report</option>
+          <option>Lab Report</option>
+          <option>X-Ray Report</option>
+          <option>Prescription Note</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Title *</label><input class="form-input" id="r-title" placeholder="e.g. Knee X-Ray"></div>
+    </div>
+    <div class="form-grid-2">
+      <div class="form-group"><label class="form-label">Visit Date *</label><input class="form-input" type="date" id="r-visit-date"></div>
+      <div class="form-group"><label class="form-label">Department</label><input class="form-input" id="r-dept" placeholder="e.g. Orthopedics"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Chief Complaint *</label><textarea class="form-input" rows="2" id="r-complaint" placeholder="Primary issue reported by patient"></textarea></div>
+    <div class="form-group"><label class="form-label">Clinical Findings</label><textarea class="form-input" rows="2" id="r-findings" placeholder="Examination findings"></textarea></div>
+    <div class="form-group"><label class="form-label">Diagnosis / Impression *</label><textarea class="form-input" rows="2" id="r-diagnosis" placeholder="Doctor diagnosis or X-ray impression"></textarea></div>
+    <div class="form-group"><label class="form-label">Treatment / Plan</label><textarea class="form-input" rows="2" id="r-plan" placeholder="Medicines / procedures / advice"></textarea></div>
+    <div class="form-group"><label class="form-label">Follow-up</label><input class="form-input" id="r-followup" placeholder="e.g. Review after 2 weeks"></div>
+    <div class="form-group"><label class="form-label">Notes</label><textarea class="form-input" rows="3" id="r-notes" placeholder="Report findings"></textarea></div>
+    <div class="form-group"><label class="form-label">Report File *</label><input class="form-input" type="file" id="r-file-upload" accept=".pdf,image/*"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-report')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveReport()">Upload Report</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap"></div>
+<script src="db.js"></script>
+<script>
+let selectedPtId = null;
+let selectedPtName = '';
+
+function init() {
+  const s = HS.requireAuth('doctor');
+  if (!s) return;
+  document.getElementById('topbar-placeholder').innerHTML = buildTopbar(s.user.name, 'doctor', s.user.color || '#16a34a');
+  renderPatients(s.user);
+  setupModals();
+}
+
+function renderPatients(doc) {
+  const patients = HS.getPatients().filter(p => p.assignedDoctor === doc.id);
+  const grid = document.getElementById('patients-grid');
+  if (!patients.length) {
+    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><div class="empty-icon">P</div><p>No patients assigned yet.</p></div>';
+    return;
+  }
+
+  grid.innerHTML = patients.map(p => {
+    const appts = HS.getAppointments().filter(a => a.patientId === p.id);
+    const meds = HS.getMedicines().filter(m => m.patientId === p.id);
+    const reports = HS.getReports().filter(r => r.patientId === p.id);
+    const vitals = HS.getVitalsHistory().filter(v => v.patientId === p.id);
+    const bp = p.bp && p.bp.trim() ? p.bp : '-';
+    const wt = p.weight && String(p.weight).trim() ? `${p.weight} kg` : '-';
+
+    return `<div class="patient-detail-card" id="card-${p.id}">
+      <div class="pdc-header">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <div class="pdc-avatar">${p.name.charAt(0)}</div>
+          <div>
+            <div class="pdc-name">${p.name}</div>
+            <div class="pdc-email">${p.email}</div>
+          </div>
+        </div>
+        ${renderBadge(appts.length + ' appts', 'badge-blue')}
+      </div>
+      <div class="pdc-body">
+        <div class="tab-bar">
+          <button class="tab-btn active" onclick="switchTab('${p.id}','info',this)">Info</button>
+          <button class="tab-btn" onclick="switchTab('${p.id}','appts',this)">Appointments</button>
+          <button class="tab-btn" onclick="switchTab('${p.id}','meds',this)">Medicines</button>
+          <button class="tab-btn" onclick="switchTab('${p.id}','reports',this)">Reports</button>
+          <button class="tab-btn" onclick="switchTab('${p.id}','records',this)">Past Records</button>
+        </div>
+
+        <div id="tab-${p.id}-info">
+          <div class="info-row"><span class="info-lbl">Contact</span><span class="info-val">${p.contact || '-'}</span></div>
+          <div class="info-row"><span class="info-lbl">City</span><span class="info-val">${p.city || '-'}</span></div>
+          <div class="info-row"><span class="info-lbl">Blood Pressure</span><span class="info-val">${bp}</span></div>
+          <div class="info-row"><span class="info-lbl">Weight</span><span class="info-val">${wt}</span></div>
+          <div style="display:flex;gap:8px;margin-top:14px;">
+            <button class="btn btn-outline btn-sm" onclick="openVitals('${p.id}','${p.name.replace(/'/g, "\\'")}')">Update BP/Weight</button>
+            <button class="btn btn-primary btn-sm" onclick="openReport('${p.id}','${p.name.replace(/'/g, "\\'")}')">Upload Report</button>
+          </div>
+        </div>
+
+        <div id="tab-${p.id}-appts" style="display:none;">
+          ${appts.length ? appts.map(a => `
+            <div style="padding:10px;background:var(--g50);border-radius:8px;margin-bottom:8px;border-left:3px solid ${a.status==='completed'?'var(--green)':a.status==='pending'?'var(--amber)':'var(--blue)'};">
+              <div style="font-size:13px;font-weight:600;">${a.datetime ? HS.fmtDate(a.datetime) : 'Date not set'}</div>
+              <div style="font-size:12px;color:var(--g400);margin:3px 0;">${a.type}</div>
+              <div style="font-size:12px;color:var(--g600);">${a.symptoms.substring(0,80)}${a.symptoms.length>80?'...':''}</div>
+              ${renderBadge(a.status, HS.statusBadge(a.status))}
+            </div>
+          `).join('') : '<div class="empty-state" style="padding:20px;"><p>No appointments yet.</p></div>'}
+        </div>
+
+        <div id="tab-${p.id}-meds" style="display:none;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <span style="font-size:13px;font-weight:600;color:var(--g700);">${meds.length} reminder${meds.length!==1?'s':''}</span>
+            <button class="btn btn-primary btn-xs" onclick="openAddMed('${p.id}','${p.name.replace(/'/g, "\\'")}')">+ Add</button>
+          </div>
+          ${meds.length ? meds.map(m => `
+            <div style="padding:10px 12px;background:var(--g50);border-radius:9px;margin-bottom:8px;border-left:3px solid ${m.taken?'var(--green)':'var(--blue)'};">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                <div style="font-weight:600;font-size:13px;">${m.name}</div>
+                ${renderBadge(m.taken?'Taken':'Pending', m.taken?'badge-green':'badge-amber')}
+              </div>
+              <div style="font-size:12px;color:var(--g400);margin:3px 0;">${m.due ? HS.fmtDate(m.due) : 'No time set'}</div>
+              <div style="font-size:12px;color:var(--g600);">${m.instructions}</div>
+            </div>
+          `).join('') : '<div class="empty-state" style="padding:20px;"><p>No medicine reminders.</p></div>'}
+        </div>
+
+        <div id="tab-${p.id}-reports" style="display:none;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <span style="font-size:13px;font-weight:600;color:var(--g700);">${reports.length} report${reports.length!==1?'s':''}</span>
+            <button class="btn btn-primary btn-xs" onclick="openReport('${p.id}','${p.name.replace(/'/g, "\\'")}')">+ Upload</button>
+          </div>
+          ${reports.length ? reports.map(r => `
+            <div class="report-row">
+              <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">
+                <div style="font-size:13px;font-weight:700;">${r.title}</div>
+                ${renderBadge(r.type || 'Report', 'badge-blue')}
+              </div>
+              <div style="font-size:12px;color:var(--g400);margin-top:4px;">${HS.fmtShort(r.createdAt)}</div>
+              <div style="font-size:12px;color:var(--g600);margin-top:4px;">${r.notes || 'No notes'}</div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
+                <a class="btn btn-primary btn-xs" href="report-view.html?id=${r.id}&role=doctor" target="_blank">Professional View</a>
+                ${(r.fileData || r.fileUrl) ? `<a class="btn btn-outline btn-xs" href="${r.fileData || r.fileUrl}" target="_blank" download="${r.fileName || 'report'}">Open File</a>` : ''}
+              </div>
+            </div>
+          `).join('') : '<div class="empty-state" style="padding:20px;"><p>No reports uploaded.</p></div>'}
+        </div>
+
+        <div id="tab-${p.id}-records" style="display:none;">
+          <div style="font-size:13px;font-weight:700;color:var(--g700);margin-bottom:10px;">Vitals History</div>
+          ${vitals.length ? vitals.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).map(v => `
+            <div class="record-row">
+              <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">
+                <div style="font-size:13px;font-weight:700;">BP ${v.bp || '-'} | Weight ${v.weight ? v.weight + ' kg' : '-'}</div>
+                ${renderBadge('Vitals', 'badge-blue')}
+              </div>
+              <div style="font-size:12px;color:var(--g400);margin-top:3px;">By: ${HS.doctorName(v.doctorId)} | ${HS.fmtShort(v.createdAt)}</div>
+            </div>
+          `).join('') : '<div class="empty-state" style="padding:14px;"><p>No vitals history yet.</p></div>'}
+
+          <div style="font-size:13px;font-weight:700;color:var(--g700);margin:14px 0 10px;">Previous Reports</div>
+          ${reports.length ? reports.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).map(r => `
+            <div class="record-row">
+              <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">
+                <div style="font-size:13px;font-weight:700;">${r.title}</div>
+                ${renderBadge(r.type || 'Report', 'badge-blue')}
+              </div>
+              <div style="font-size:12px;color:var(--g400);margin-top:3px;">${HS.fmtShort(r.createdAt)}</div>
+              <div style="margin-top:8px;"><a class="btn btn-outline btn-xs" href="report-view.html?id=${r.id}&role=doctor" target="_blank">Open Professional View</a></div>
+            </div>
+          `).join('') : '<div class="empty-state" style="padding:14px;"><p>No previous reports.</p></div>'}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function switchTab(pid, tab, btn) {
+  const card = document.getElementById('card-' + pid);
+  card.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  ['info','appts','meds','reports','records'].forEach(t => {
+    const el = document.getElementById(`tab-${pid}-${t}`);
+    if (el) el.style.display = t === tab ? 'block' : 'none';
+  });
+}
+
+function setPatientSelection(pid, pname) {
+  selectedPtId = pid;
+  selectedPtName = pname;
+}
+
+function openAddMed(pid, pname) {
+  setPatientSelection(pid, pname);
+  document.getElementById('med-pt-name').textContent = pname;
+  document.getElementById('m-name').value = '';
+  document.getElementById('m-due').value = '';
+  document.getElementById('m-instr').value = '';
+  openModal('modal-med');
+}
+
+function addMed() {
+  const name = document.getElementById('m-name').value.trim();
+  const due = document.getElementById('m-due').value;
+  const instr = document.getElementById('m-instr').value.trim();
+  if (!name || !instr) { toast('Medicine name and instructions are required', 'error'); return; }
+
+  const s = HS.getSession();
+  const meds = HS.getMedicines();
+  meds.push({ id: 'm' + HS.uid(), patientId: selectedPtId, name, instructions: instr, due: due || null, addedBy: s.user.id, taken: false, createdAt: HS.now() });
+  HS.saveMedicines(meds);
+  closeModal('modal-med');
+  renderPatients(s.user);
+  toast('Medicine reminder added.', 'success');
+}
+
+function openVitals(pid, pname) {
+  setPatientSelection(pid, pname);
+  const p = HS.getPatients().find(x => x.id === pid) || {};
+  document.getElementById('v-pt-name').textContent = pname;
+  document.getElementById('v-bp').value = p.bp || '';
+  document.getElementById('v-weight').value = p.weight || '';
+  openModal('modal-vitals');
+}
+
+function saveVitals() {
+  const bp = document.getElementById('v-bp').value.trim();
+  const weight = document.getElementById('v-weight').value.trim();
+  if (!bp || !weight) { toast('BP and Weight are required', 'error'); return; }
+
+  const s = HS.getSession();
+  const patients = HS.getPatients();
+  const p = patients.find(x => x.id === selectedPtId);
+  if (!p) { toast('Patient not found', 'error'); return; }
+
+  p.bp = bp;
+  p.weight = weight;
+  p.updatedAt = HS.now();
+  HS.savePatients(patients);
+  const vh = HS.getVitalsHistory();
+  vh.unshift({ id: 'vh' + HS.uid(), patientId: selectedPtId, doctorId: s.user.id, bp, weight, createdAt: HS.now() });
+  HS.saveVitalsHistory(vh);
+
+  closeModal('modal-vitals');
+  renderPatients(s.user);
+  toast('BP and Weight updated.', 'success');
+}
+
+function openReport(pid, pname) {
+  setPatientSelection(pid, pname);
+  document.getElementById('r-pt-name').textContent = pname;
+  document.getElementById('r-type').value = 'General Report';
+  document.getElementById('r-title').value = '';
+  document.getElementById('r-visit-date').value = new Date().toISOString().slice(0,10);
+  document.getElementById('r-dept').value = '';
+  document.getElementById('r-complaint').value = '';
+  document.getElementById('r-findings').value = '';
+  document.getElementById('r-diagnosis').value = '';
+  document.getElementById('r-plan').value = '';
+  document.getElementById('r-followup').value = '';
+  document.getElementById('r-notes').value = '';
+  document.getElementById('r-file-upload').value = '';
+  openModal('modal-report');
+}
+
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function saveReport() {
+  const type = document.getElementById('r-type').value;
+  const title = document.getElementById('r-title').value.trim();
+  const visitDate = document.getElementById('r-visit-date').value;
+  const department = document.getElementById('r-dept').value.trim();
+  const chiefComplaint = document.getElementById('r-complaint').value.trim();
+  const findings = document.getElementById('r-findings').value.trim();
+  const diagnosis = document.getElementById('r-diagnosis').value.trim();
+  const plan = document.getElementById('r-plan').value.trim();
+  const followUp = document.getElementById('r-followup').value.trim();
+  const notes = document.getElementById('r-notes').value.trim();
+  const fileInput = document.getElementById('r-file-upload');
+  const file = fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+  if (!title) { toast('Report title is required', 'error'); return; }
+  if (!visitDate) { toast('Visit date is required', 'error'); return; }
+  if (!chiefComplaint) { toast('Chief complaint is required', 'error'); return; }
+  if (!diagnosis) { toast('Diagnosis / impression is required', 'error'); return; }
+  if (!file) { toast('Please upload report file', 'error'); return; }
+
+  const s = HS.getSession();
+  const fileData = await fileToDataUrl(file);
+  const reports = HS.getReports();
+  reports.unshift({
+    id: 'r' + HS.uid(),
+    patientId: selectedPtId,
+    doctorId: s.user.id,
+    type,
+    title,
+    notes,
+    visitDate,
+    department,
+    chiefComplaint,
+    findings,
+    diagnosis,
+    plan,
+    followUp,
+    templateVersion: 1,
+    fileData,
+    fileName: file.name,
+    fileType: file.type || '',
+    createdAt: HS.now()
+  });
+  HS.saveReports(reports);
+
+  closeModal('modal-report');
+  renderPatients(s.user);
+  toast(`${type} uploaded successfully.`, 'success');
+}
+
+init();
+</script>
+</body>
+</html>

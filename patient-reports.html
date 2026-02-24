@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Reports - HealthSetu</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+.report-item { border: 1px solid var(--g200); border-radius: 12px; padding: 14px; margin-bottom: 12px; background: white; }
+.report-title { font-size: 15px; font-weight: 700; color: var(--g800); }
+.report-meta { font-size: 12px; color: var(--g400); margin-top: 4px; }
+.report-notes { font-size: 13px; color: var(--g600); margin-top: 8px; line-height: 1.45; }
+</style>
+</head>
+<body>
+<div id="topbar-placeholder"></div>
+<div class="app-layout">
+  <nav class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Patient Menu</div>
+      <a class="sidebar-link" href="patient-dashboard.html"><span class="s-icon">&#127968;</span> Dashboard</a>
+      <a class="sidebar-link" href="patient-appointments.html"><span class="s-icon">&#128197;</span> Appointments</a>
+      <a class="sidebar-link" href="patient-medicines.html"><span class="s-icon">&#128138;</span> Medicines</a>
+      <a class="sidebar-link" href="patient-health.html"><span class="s-icon">&#129658;</span> Health Data</a>
+      <a class="sidebar-link active" href="patient-reports.html"><span class="s-icon">&#128196;</span> Reports</a>
+      <a class="sidebar-link" href="patient-profile.html"><span class="s-icon">&#128100;</span> My Profile</a>
+    </div>
+    <div class="sidebar-footer">
+      <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:flex-start;gap:8px;" onclick="HS.clearSession();window.location.href='login-patient.html'">Sign Out</button>
+    </div>
+  </nav>
+
+  <div class="main-content">
+    <div class="page-header anim-fade-up">
+      <h1>My Reports</h1>
+      <p>All reports uploaded by your doctor, including X-ray reports</p>
+    </div>
+    <div class="card anim-fade-up-1">
+      <div id="report-list"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap"></div>
+<script src="db.js"></script>
+<script>
+function init() {
+  const s = HS.requireAuth('patient');
+  if (!s) return;
+  document.getElementById('topbar-placeholder').innerHTML = buildTopbar(s.user.name, 'patient', '#1a6bff');
+  render(s.user.id);
+}
+
+function render(patientId) {
+  const reports = HS.getReports().filter(r => r.patientId === patientId);
+  const el = document.getElementById('report-list');
+  if (!reports.length) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">R</div><p>No reports uploaded yet.</p></div>';
+    return;
+  }
+
+  el.innerHTML = reports.map(r => `
+    <div class="report-item">
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">
+        <div>
+          <div class="report-title">${r.title || 'Untitled Report'}</div>
+          <div class="report-meta">Type: ${r.type || 'General Report'} | By: ${HS.doctorName(r.doctorId)} | ${HS.fmtShort(r.createdAt)}</div>
+        </div>
+        ${renderBadge(r.type || 'Report', 'badge-blue')}
+      </div>
+      <div class="report-notes">${r.notes || 'No notes added.'}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;">
+        <a class="btn btn-primary btn-xs" href="report-view.html?id=${r.id}&role=patient" target="_blank">Professional View</a>
+        ${(r.fileData || r.fileUrl) ? `<a class="btn btn-outline btn-xs" href="${r.fileData || r.fileUrl}" target="_blank" download="${r.fileName || 'report'}">Open File</a>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+init();
+</script>
+</body>
+</html>

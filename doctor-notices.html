@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notices — HealthSetu Doctor</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="topbar-placeholder"></div>
+<div class="app-layout">
+  <nav class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Doctor Menu</div>
+      <a class="sidebar-link" href="doctor-dashboard.html"><span class="s-icon">🏠</span> Dashboard</a>
+      <a class="sidebar-link" href="doctor-appointments.html"><span class="s-icon">📅</span> Appointments</a>
+      <a class="sidebar-link" href="doctor-patients.html"><span class="s-icon">👥</span> My Patients</a>
+      <a class="sidebar-link active" href="doctor-notices.html"><span class="s-icon">📢</span> Notices</a>
+    </div>
+    <div class="sidebar-footer">
+      <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:flex-start;gap:8px;" onclick="HS.clearSession();window.location.href='login-doctor.html'">🚪 Sign Out</button>
+    </div>
+  </nav>
+  <div class="main-content">
+    <div class="page-header anim-fade-up"><h1>🚨 Hospital Notices</h1><p>Important announcements from administration</p></div>
+    <div id="notices-list" class="anim-fade-up-1"></div>
+  </div>
+</div>
+<div class="toast-wrap"></div>
+<script src="db.js"></script>
+<script>
+function init() {
+  const s = HS.requireAuth('doctor');
+  if (!s) return;
+  document.getElementById('topbar-placeholder').innerHTML = buildTopbar(s.user.name, 'doctor', s.user.color||'#16a34a');
+  const notices = HS.getNotices();
+  const el = document.getElementById('notices-list');
+  el.innerHTML = notices.length ? notices.map(n => `
+    <div class="notice-item ${n.type}" style="margin-bottom:14px;">
+      <div class="notice-title" style="font-size:16px;">${n.title}</div>
+      <div class="notice-body" style="margin-top:6px;">${n.body}</div>
+      <div class="notice-meta"><span>👤 ${n.author}</span><span>🕐 ${HS.fmtDate(n.createdAt)}</span></div>
+    </div>`).join('') : '<div class="empty-state"><div class="empty-icon">📢</div><p>No notices from admin.</p></div>';
+}
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inventory — HealthSetu Admin</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="topbar-placeholder"></div>
+<div class="app-layout">
+  <nav class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Main Menu</div>
+      <a class="sidebar-link" href="admin-dashboard.html"><span class="s-icon">🏠</span> Dashboard</a>
+      <a class="sidebar-link" href="admin-doctors.html"><span class="s-icon">🩺</span> Doctors</a>
+      <a class="sidebar-link" href="admin-patients.html"><span class="s-icon">👥</span> Patients</a>
+      <a class="sidebar-link" href="admin-notices.html"><span class="s-icon">📢</span> Notice Board</a>
+      <a class="sidebar-link active" href="admin-inventory.html"><span class="s-icon">📦</span> Inventory</a>
+    </div>
+    <div class="sidebar-footer">
+      <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:flex-start;gap:8px;" onclick="HS.clearSession();window.location.href='login-admin.html'">🚪 Sign Out</button>
+    </div>
+  </nav>
+  <div class="main-content">
+    <div class="page-header-row anim-fade-up">
+      <div class="page-header"><h1>Inventory Management</h1><p>Track medicines, supplies and equipment</p></div>
+      <button class="btn btn-primary" onclick="openModal('modal-add')">+ Add Item</button>
+    </div>
+    <div class="stats-grid stats-grid-4 anim-fade-up-1">
+      <div class="stat-card"><div class="stat-card-top"><span class="stat-label">Total Items</span><div class="stat-icon si-blue">📦</div></div><div class="stat-value" id="s-total">0</div></div>
+      <div class="stat-card"><div class="stat-card-top"><span class="stat-label">Low Stock</span><div class="stat-icon si-amber">⚠️</div></div><div class="stat-value" style="color:var(--amber);" id="s-low">0</div></div>
+      <div class="stat-card"><div class="stat-card-top"><span class="stat-label">Out of Stock</span><div class="stat-icon si-red">❌</div></div><div class="stat-value" style="color:var(--red);" id="s-out">0</div></div>
+      <div class="stat-card"><div class="stat-card-top"><span class="stat-label">Expiring Soon</span><div class="stat-icon si-purple">📅</div></div><div class="stat-value" style="color:var(--orange);" id="s-exp">0</div></div>
+    </div>
+    <div class="card anim-fade-up-2">
+      <div class="card-header">
+        <input class="form-input" style="width:260px;" placeholder="🔍 Search items..." oninput="render(this.value)">
+        <select class="form-input" style="width:auto;" onchange="render('',this.value)" id="cat-filter">
+          <option value="">All Categories</option><option>Medicine</option><option>Supplies</option><option>Equipment</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Item Name</th><th>Category</th><th>Quantity</th><th>Unit</th><th>Expiry Date</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="inv-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="modal-add">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Add Inventory Item</div></div>
+    <div class="form-grid-2">
+      <div class="form-group"><label class="form-label">Item Name *</label><input class="form-input" placeholder="e.g. Paracetamol" id="i-name"></div>
+      <div class="form-group"><label class="form-label">Category</label><select class="form-input" id="i-cat"><option>Medicine</option><option>Supplies</option><option>Equipment</option></select></div>
+      <div class="form-group"><label class="form-label">Quantity *</label><input class="form-input" type="number" placeholder="0" id="i-qty" min="0"></div>
+      <div class="form-group"><label class="form-label">Unit</label><input class="form-input" placeholder="tablets/packs/boxes" id="i-unit"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Expiry Date</label><input class="form-input" type="date" id="i-exp"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-add')">Cancel</button>
+      <button class="btn btn-primary" onclick="addItem()">Add Item</button>
+    </div>
+  </div>
+</div>
+<div class="toast-wrap"></div>
+<script src="db.js"></script>
+<script>
+function init() {
+  const s = HS.requireAuth('admin');
+  if (!s) return;
+  document.getElementById('topbar-placeholder').innerHTML = buildTopbar(s.user.name, 'admin', '#0b1f3a');
+  render(); setupModals();
+}
+function render(search='', cat='') {
+  search = document.querySelector('.card .form-input')?.value || search;
+  cat = document.getElementById('cat-filter')?.value || cat;
+  let inv = HS.getInventory();
+  if (search) inv = inv.filter(i => i.name.toLowerCase().includes(search.toLowerCase()));
+  if (cat) inv = inv.filter(i => i.category === cat);
+  document.getElementById('s-total').textContent = HS.getInventory().length;
+  document.getElementById('s-low').textContent = HS.getInventory().filter(i => { const s = HS.getInvStatus(i.qty); return s.label === 'Low Stock'; }).length;
+  document.getElementById('s-out').textContent = HS.getInventory().filter(i => i.qty === 0).length;
+  const today = new Date();
+  document.getElementById('s-exp').textContent = HS.getInventory().filter(i => { if(!i.expiry) return false; const d=new Date(i.expiry); return (d-today)/(1000*60*60*24) <= 30 && d >= today; }).length;
+  const tbody = document.getElementById('inv-tbody');
+  tbody.innerHTML = inv.length ? inv.map(item => {
+    const st = HS.getInvStatus(item.qty);
+    const qtyStyle = item.qty <= 5 ? 'color:var(--red);font-weight:700;' : '';
+    return `<tr>
+      <td><strong>${item.name}</strong></td>
+      <td><span class="chip">${item.category}</span></td>
+      <td style="${qtyStyle}">${item.qty}</td>
+      <td>${item.unit}</td>
+      <td>${item.expiry||'—'}</td>
+      <td>${renderBadge(st.label, st.cls)}</td>
+      <td><button class="btn btn-danger btn-xs" onclick="del('${item.id}')">Delete</button></td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">📦</div><p>No inventory items.</p></div></td></tr>';
+}
+function addItem() {
+  const name = document.getElementById('i-name').value.trim();
+  const cat = document.getElementById('i-cat').value;
+  const qty = parseInt(document.getElementById('i-qty').value) || 0;
+  const unit = document.getElementById('i-unit').value.trim() || 'units';
+  const exp = document.getElementById('i-exp').value;
+  if (!name) { toast('Please enter item name', 'error'); return; }
+  const inv = HS.getInventory();
+  inv.push({ id: 'i'+HS.uid(), name, category: cat, qty, unit, expiry: exp||'—', createdAt: HS.now() });
+  HS.saveInventory(inv);
+  closeModal('modal-add');
+  ['i-name','i-qty','i-unit','i-exp'].forEach(id => document.getElementById(id).value = '');
+  render(); toast(`${name} added to inventory!`, 'success');
+}
+function del(id) {
+  HS.saveInventory(HS.getInventory().filter(i => i.id !== id));
+  render(); toast('Item removed', 'info');
+}
+init();
+</script>
+</body>
+</html>

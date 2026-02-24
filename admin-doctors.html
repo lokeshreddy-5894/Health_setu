@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manage Doctors — HealthSetu Admin</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+.doc-card {
+  background: white; border: 1px solid var(--g200); border-radius: 14px;
+  padding: 20px; transition: all .2s; position: relative; overflow: hidden;
+}
+.doc-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+.doc-card-accent { position: absolute; top: 0; left: 0; right: 0; height: 4px; border-radius: 14px 14px 0 0; }
+.doc-card-header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 14px; }
+.doc-big-avatar { width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 800; color: white; flex-shrink: 0; }
+.doc-card-name { font-size: 15px; font-weight: 700; color: var(--g900); }
+.doc-card-spec { font-size: 12px; color: var(--g400); margin-top: 3px; }
+.doc-card-info { font-size: 13px; color: var(--g600); margin-bottom: 14px; display: flex; flex-direction: column; gap: 5px; }
+.doc-card-info span { display: flex; align-items: center; gap: 6px; }
+.doc-card-cred { background: var(--g50); border: 1px dashed var(--g300); border-radius: 8px; padding: 9px 12px; font-size: 12px; color: var(--g600); margin-bottom: 14px; }
+.doc-card-footer { display: flex; gap: 8px; }
+.doc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; }
+.search-bar { display: flex; gap: 10px; margin-bottom: 22px; }
+.search-bar .form-input { max-width: 320px; }
+</style>
+</head>
+<body>
+<div id="topbar-placeholder"></div>
+<div class="app-layout">
+  <nav class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Main Menu</div>
+      <a class="sidebar-link" href="admin-dashboard.html"><span class="s-icon">🏠</span> Dashboard</a>
+      <a class="sidebar-link active" href="admin-doctors.html"><span class="s-icon">🩺</span> Doctors</a>
+      <a class="sidebar-link" href="admin-patients.html"><span class="s-icon">👥</span> Patients</a>
+      <a class="sidebar-link" href="admin-notices.html"><span class="s-icon">📢</span> Notice Board</a>
+      <a class="sidebar-link" href="admin-inventory.html"><span class="s-icon">📦</span> Inventory</a>
+    </div>
+    <div class="sidebar-footer">
+      <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:flex-start;gap:8px;" onclick="HS.clearSession();window.location.href='login-admin.html'">🚪 Sign Out</button>
+    </div>
+  </nav>
+  <div class="main-content">
+    <div class="page-header-row anim-fade-up">
+      <div class="page-header">
+        <h1>Doctor Management</h1>
+        <p>Add doctors, manage credentials and view their patient assignments</p>
+      </div>
+      <button class="btn btn-primary" onclick="openModal('modal-add-doctor')">+ Add Doctor</button>
+    </div>
+
+    <div class="search-bar anim-fade-up-1">
+      <input class="form-input" placeholder="🔍 Search doctors by name, email or specialization..." oninput="filterDocs(this.value)">
+      <select class="form-input" style="width:auto;" onchange="filterSpec(this.value)" id="spec-filter">
+        <option value="">All Specializations</option>
+        <option>General</option><option>Cardiology</option><option>Orthopedics</option>
+        <option>Neurology</option><option>Pediatrics</option><option>Dermatology</option>
+      </select>
+    </div>
+
+    <div class="doc-grid anim-fade-up-2" id="doc-grid"></div>
+  </div>
+</div>
+
+<!-- ADD DOCTOR MODAL -->
+<div class="modal-overlay" id="modal-add-doctor">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">➕ Add New Doctor</div>
+      <div class="modal-subtitle">Doctor credentials will be used for their login</div>
+    </div>
+    <div class="form-grid-2">
+      <div class="form-group"><label class="form-label">Full Name *</label><input class="form-input" placeholder="e.g. Sushant Kumar" id="d-name"></div>
+      <div class="form-group"><label class="form-label">Email (Login ID) *</label><input class="form-input" type="email" placeholder="doctor@email.com" id="d-email"></div>
+      <div class="form-group"><label class="form-label">Login Password *</label>
+        <div class="input-wrap"><input class="form-input" type="password" placeholder="Set a secure password" id="d-pw"><button class="input-icon-right" onclick="togglePw('d-pw',this)">👁️</button></div>
+      </div>
+      <div class="form-group"><label class="form-label">Contact Number</label><input class="form-input" placeholder="+91 XXXXXXXXXX" id="d-contact"></div>
+      <div class="form-group"><label class="form-label">Specialization</label>
+        <select class="form-input" id="d-spec">
+          <option>General</option><option>Cardiology</option><option>Orthopedics</option>
+          <option>Neurology</option><option>Pediatrics</option><option>Dermatology</option>
+          <option>Gynecology</option><option>Oncology</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Department</label><input class="form-input" placeholder="e.g. OPD, ICU, Emergency" id="d-dept"></div>
+    </div>
+    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:9px;padding:12px 14px;font-size:13px;color:#1d4ed8;margin-top:4px;">
+      🔑 The email and password you set here will be the doctor's login credentials at the <strong>Doctor Login</strong> portal.
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-add-doctor')">Cancel</button>
+      <button class="btn btn-primary" onclick="addDoctor()">Add Doctor</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap"></div>
+<script src="db.js"></script>
+<script>
+let specFilter = '';
+
+function init() {
+  const s = HS.requireAuth('admin');
+  if (!s) return;
+  document.getElementById('topbar-placeholder').innerHTML = buildTopbar(s.user.name, 'admin', '#0b1f3a');
+  renderDocs();
+  setupModals();
+}
+
+function renderDocs(search = '', spec = '') {
+  let docs = HS.getDoctors();
+  const patients = HS.getPatients();
+  if (search) docs = docs.filter(d => d.name.toLowerCase().includes(search.toLowerCase()) || d.email.toLowerCase().includes(search.toLowerCase()) || d.spec.toLowerCase().includes(search.toLowerCase()));
+  if (spec) docs = docs.filter(d => d.spec === spec);
+
+  const grid = document.getElementById('doc-grid');
+  if (!docs.length) {
+    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><div class="empty-icon">🩺</div><p>No doctors found. Add one to get started.</p></div>';
+    return;
+  }
+  grid.innerHTML = docs.map(d => {
+    const cnt = patients.filter(p => p.assignedDoctor === d.id).length;
+    return `<div class="doc-card">
+      <div class="doc-card-accent" style="background:${d.color};"></div>
+      <div class="doc-card-header">
+        <div class="doc-big-avatar" style="background:${d.color};">${d.name.charAt(0)}</div>
+        <div>
+          <div class="doc-card-name">${d.name}</div>
+          <div class="doc-card-spec">${d.spec} · ${d.dept||'OPD'}</div>
+          ${renderBadge(cnt+' patients', 'badge-blue')}
+        </div>
+      </div>
+      <div class="doc-card-info">
+        <span>📧 ${d.email}</span>
+        <span>📞 ${d.contact||'—'}</span>
+        <span>🏥 ${d.dept||d.spec} Department</span>
+      </div>
+      <div class="doc-card-cred">
+        🔑 <strong>Login ID:</strong> ${d.email}<br>
+        🔒 <strong>Password:</strong> ${'•'.repeat(d.password.length)} (set by admin)
+      </div>
+      <div class="doc-card-footer">
+        <button class="btn btn-outline btn-sm" onclick="viewPatients('${d.id}')">👥 Patients</button>
+        <button class="btn btn-danger btn-sm" onclick="removeDoctor('${d.id}','${d.name}')">Remove</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterDocs(v) { renderDocs(v, specFilter); }
+function filterSpec(v) { specFilter = v; renderDocs(document.querySelector('.search-bar .form-input').value, v); }
+
+function addDoctor() {
+  const name = document.getElementById('d-name').value.trim();
+  const email = document.getElementById('d-email').value.trim().toLowerCase();
+  const pw = document.getElementById('d-pw').value;
+  const contact = document.getElementById('d-contact').value.trim();
+  const spec = document.getElementById('d-spec').value;
+  const dept = document.getElementById('d-dept').value.trim();
+  if (!name || !email || !pw) { toast('Name, email and password are required', 'error'); return; }
+  const doctors = HS.getDoctors();
+  if (doctors.find(d => d.email === email)) { toast('Email already registered', 'error'); return; }
+  const colors = ['#2563eb','#16a34a','#7c3aed','#ea580c','#0891b2','#be185d','#d97706','#065f46'];
+  doctors.push({ id: 'd'+HS.uid(), name: name.startsWith('Dr.') ? name : 'Dr. '+name, email, password: pw, contact, spec, dept: dept||spec, color: colors[doctors.length % colors.length], createdAt: HS.now() });
+  HS.saveDoctors(doctors);
+  closeModal('modal-add-doctor');
+  ['d-name','d-email','d-pw','d-contact','d-dept'].forEach(id => document.getElementById(id).value = '');
+  renderDocs();
+  toast('Doctor added! They can now log in with their credentials.', 'success');
+}
+
+function removeDoctor(id, name) {
+  if (!confirm(`Remove ${name}? Their patients will be unassigned.`)) return;
+  let doctors = HS.getDoctors();
+  doctors = doctors.filter(d => d.id !== id);
+  HS.saveDoctors(doctors);
+  const patients = HS.getPatients();
+  patients.forEach(p => { if (p.assignedDoctor === id) p.assignedDoctor = null; });
+  HS.savePatients(patients);
+  renderDocs();
+  toast(`${name} removed from the system`, 'info');
+}
+
+function viewPatients(docId) {
+  localStorage.setItem('hs_filter_doc', docId);
+  window.location.href = 'admin-patients.html';
+}
+
+init();
+</script>
+</body>
+</html>

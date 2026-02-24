@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard — HealthSetu</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+.unassigned-card {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 13px 16px; background: var(--g50); border: 1.5px solid var(--g200);
+  border-radius: 10px; margin-bottom: 8px; cursor: pointer; transition: all .18s;
+}
+.unassigned-card:hover { border-color: var(--blue); background: #eff6ff; }
+.doc-name-cell { display: flex; align-items: center; gap: 10px; }
+.progress-mini { height: 5px; background: var(--g200); border-radius: 999px; margin-top: 5px; overflow: hidden; width: 80px; }
+.progress-mini-fill { height: 100%; border-radius: 999px; background: var(--blue); }
+.cred-box { background: var(--g50); border: 1px solid var(--g200); border-radius: 8px; padding: 10px 14px; margin-top: 12px; font-size: 13px; color: var(--g600); }
+.cred-box strong { color: var(--g800); }
+</style>
+</head>
+<body>
+<div id="topbar-placeholder"></div>
+<div class="app-layout">
+  <nav class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Main Menu</div>
+      <a class="sidebar-link active" href="admin-dashboard.html"><span class="s-icon">🏠</span> Dashboard</a>
+      <a class="sidebar-link" href="admin-doctors.html"><span class="s-icon">🩺</span> Doctors</a>
+      <a class="sidebar-link" href="admin-patients.html"><span class="s-icon">👥</span> Patients</a>
+      <a class="sidebar-link" href="admin-notices.html"><span class="s-icon">📢</span> Notice Board</a>
+      <a class="sidebar-link" href="admin-inventory.html"><span class="s-icon">📦</span> Inventory</a>
+    </div>
+    <div class="sidebar-footer">
+      <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:flex-start;gap:8px;" onclick="HS.clearSession();window.location.href='login-admin.html'">🚪 Sign Out</button>
+    </div>
+  </nav>
+  <div class="main-content">
+    <div class="page-header-row anim-fade-up">
+      <div class="page-header">
+        <h1>Admin Dashboard</h1>
+        <p>Hospital overview — manage doctors, patients and operations</p>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-outline btn-sm" onclick="window.location.href='admin-notices.html'">📢 Post Notice</button>
+        <button class="btn btn-primary btn-sm" onclick="openModal('modal-add-doctor')">+ Add Doctor</button>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-grid stats-grid-4 anim-fade-up-1">
+      <div class="stat-card">
+        <div class="stat-card-top"><span class="stat-label">Total Patients</span><div class="stat-icon si-blue">👥</div></div>
+        <div class="stat-value" id="s-patients">0</div>
+        <div class="stat-meta">Registered in system</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-top"><span class="stat-label">Total Doctors</span><div class="stat-icon si-green">🩺</div></div>
+        <div class="stat-value" id="s-doctors">0</div>
+        <div class="stat-meta">Active doctors</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-top"><span class="stat-label">Assigned Patients</span><div class="stat-icon si-purple">✅</div></div>
+        <div class="stat-value" id="s-assigned">0</div>
+        <div class="stat-meta">Have doctor assigned</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-top"><span class="stat-label">Total Appointments</span><div class="stat-icon si-amber">📅</div></div>
+        <div class="stat-value" id="s-appts">0</div>
+        <div class="stat-meta">All time</div>
+      </div>
+    </div>
+
+    <!-- DOCTORS + UNASSIGNED -->
+    <div class="two-col anim-fade-up-2">
+      <div class="card">
+        <div class="card-header">
+          <div><div class="card-title">Doctors Overview</div><div class="card-subtitle">All registered doctors</div></div>
+          <a href="admin-doctors.html" class="btn btn-outline btn-xs">View All</a>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Doctor</th><th>Specialization</th><th>Patients</th><th>Status</th></tr></thead>
+            <tbody id="doc-table"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div><div class="card-title">Unassigned Patients</div><div class="card-subtitle">Click to assign a doctor</div></div>
+          <a href="admin-patients.html" class="btn btn-outline btn-xs">All Patients</a>
+        </div>
+        <div id="unassigned-list"></div>
+      </div>
+    </div>
+
+    <!-- NOTICES PREVIEW -->
+    <div class="card anim-fade-up-3" style="margin-top:20px;">
+      <div class="card-header">
+        <div class="card-title">Recent Notices</div>
+        <a href="admin-notices.html" class="btn btn-outline btn-xs">Manage</a>
+      </div>
+      <div id="notices-preview"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ADD DOCTOR MODAL -->
+<div class="modal-overlay" id="modal-add-doctor">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">➕ Add New Doctor</div>
+      <div class="modal-subtitle">Doctor's login credentials will be set here</div>
+    </div>
+    <div class="form-grid-2">
+      <div class="form-group"><label class="form-label">Full Name *</label><input class="form-input" placeholder="e.g. Sushant Kumar" id="d-name"></div>
+      <div class="form-group"><label class="form-label">Email (Login ID) *</label><input class="form-input" type="email" placeholder="doctor@hospital.com" id="d-email"></div>
+      <div class="form-group"><label class="form-label">Password *</label>
+        <div class="input-wrap"><input class="form-input" type="password" placeholder="Set login password" id="d-pw"><button class="input-icon-right" onclick="togglePw('d-pw',this)">👁️</button></div>
+      </div>
+      <div class="form-group"><label class="form-label">Contact Number</label><input class="form-input" placeholder="+91 XXXXXXXXXX" id="d-contact"></div>
+      <div class="form-group"><label class="form-label">Specialization</label>
+        <select class="form-input" id="d-spec">
+          <option>General</option><option>Cardiology</option><option>Orthopedics</option>
+          <option>Neurology</option><option>Pediatrics</option><option>Dermatology</option>
+          <option>Gynecology</option><option>Oncology</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Department</label><input class="form-input" placeholder="e.g. OPD, ICU" id="d-dept"></div>
+    </div>
+    <div class="cred-box">
+      🔑 <strong>Login credentials:</strong> The email and password you set above will be used by this doctor to log in at <a href="login-doctor.html" style="color:var(--blue);">Doctor Login</a>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-add-doctor')">Cancel</button>
+      <button class="btn btn-primary" onclick="addDoctor()">Add Doctor</button>
+    </div>
+  </div>
+</div>
+
+<!-- ASSIGN DOCTOR MODAL -->
+<div class="modal-overlay" id="modal-assign">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Assign Doctor</div>
+      <div class="modal-subtitle">Select a doctor for <strong id="assign-pt-name">patient</strong></div>
+    </div>
+    <div id="assign-options" style="max-height:340px;overflow-y:auto;"></div>
+    <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal('modal-assign')">Cancel</button></div>
+  </div>
+</div>
+
+<div class="toast-wrap"></div>
+<script src="db.js"></script>
+<script>
+let assigningPatientId = null;
+
+function init() {
+  const s = HS.requireAuth('admin');
+  if (!s) return;
+  document.getElementById('topbar-placeholder').innerHTML = buildTopbar(s.user.name, 'admin', '#0b1f3a');
+  render();
+  setupModals();
+}
+
+function render() {
+  const doctors = HS.getDoctors();
+  const patients = HS.getPatients();
+  const appts = HS.getAppointments();
+  const assigned = patients.filter(p => p.assignedDoctor).length;
+
+  document.getElementById('s-patients').textContent = patients.length;
+  document.getElementById('s-doctors').textContent = doctors.length;
+  document.getElementById('s-assigned').textContent = assigned;
+  document.getElementById('s-appts').textContent = appts.length;
+
+  // Doctor table
+  const dt = document.getElementById('doc-table');
+  dt.innerHTML = doctors.map(d => {
+    const cnt = patients.filter(p => p.assignedDoctor === d.id).length;
+    return `<tr>
+      <td><div class="doc-name-cell"><div class="doctor-avatar" style="background:${d.color};">${d.name.charAt(0)}</div><div><div style="font-weight:600;font-size:13px;">${d.name}</div><div style="font-size:11px;color:var(--g400);">${d.email}</div></div></div></td>
+      <td><span class="chip">${d.spec}</span></td>
+      <td>${cnt}</td>
+      <td>${renderBadge('Active','badge-green')}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="4"><div class="empty-state" style="padding:20px;"><div class="empty-icon">🩺</div><p>No doctors added yet. <a href="#" onclick="openModal(\'modal-add-doctor\')" style="color:var(--blue);">Add one</a></p></div></td></tr>';
+
+  // Unassigned patients
+  const ul = document.getElementById('unassigned-list');
+  const unassigned = patients.filter(p => !p.assignedDoctor);
+  ul.innerHTML = unassigned.length ? unassigned.map(p => `
+    <div class="unassigned-card" onclick="openAssign('${p.id}')">
+      <div>
+        <div style="font-weight:600;font-size:14px;">${p.name}</div>
+        <div style="font-size:12px;color:var(--g400);">${p.email} · ${p.city||'—'}</div>
+      </div>
+      ${renderBadge('Unassigned','badge-amber')}
+    </div>`) .join('') : '<div class="empty-state" style="padding:28px;"><div class="empty-icon">✅</div><p>All patients are assigned!</p></div>';
+
+  // Notices
+  const notices = HS.getNotices();
+  document.getElementById('notices-preview').innerHTML = notices.slice(0,2).map(n => `
+    <div class="notice-item ${n.type}">
+      <div class="notice-title">${n.title}</div>
+      <div class="notice-body">${n.body}</div>
+      <div class="notice-meta"><span>👤 ${n.author}</span><span>🕐 ${HS.fmtShort(n.createdAt)}</span></div>
+    </div>`).join('') || '<p style="color:var(--g400);font-size:14px;padding:10px 0;">No notices posted.</p>';
+}
+
+function openAssign(pid) {
+  assigningPatientId = pid;
+  const pt = HS.getPatients().find(p => p.id === pid);
+  document.getElementById('assign-pt-name').textContent = pt?.name;
+  const opts = document.getElementById('assign-options');
+  opts.innerHTML = HS.getDoctors().map(d => {
+    const cnt = HS.getPatients().filter(p => p.assignedDoctor === d.id).length;
+    return `<div onclick="doAssign('${d.id}')" style="display:flex;align-items:center;justify-content:space-between;padding:14px;border:1.5px solid var(--g200);border-radius:10px;margin-bottom:8px;cursor:pointer;" onmouseover="this.style.borderColor='var(--blue)'" onmouseout="this.style.borderColor='var(--g200)'">
+      <div style="display:flex;align-items:center;gap:11px;">
+        <div class="doctor-avatar" style="background:${d.color};width:38px;height:38px;">${d.name.charAt(0)}</div>
+        <div><div style="font-weight:700;font-size:14px;">${d.name}</div><div style="font-size:12px;color:var(--g400);">${d.spec} · ${d.email}</div></div>
+      </div>
+      ${renderBadge(cnt+' patients','badge-blue')}
+    </div>`;
+  }).join('');
+  openModal('modal-assign');
+}
+
+function doAssign(docId) {
+  const patients = HS.getPatients();
+  const pt = patients.find(p => p.id === assigningPatientId);
+  if (pt) { pt.assignedDoctor = docId; HS.savePatients(patients); }
+  closeModal('modal-assign');
+  render();
+  toast(`${pt?.name} assigned to ${HS.doctorName(docId)}!`, 'success');
+}
+
+function addDoctor() {
+  const name = document.getElementById('d-name').value.trim();
+  const email = document.getElementById('d-email').value.trim().toLowerCase();
+  const pw = document.getElementById('d-pw').value;
+  const contact = document.getElementById('d-contact').value.trim();
+  const spec = document.getElementById('d-spec').value;
+  const dept = document.getElementById('d-dept').value.trim();
+  if (!name || !email || !pw) { toast('Name, email and password are required', 'error'); return; }
+  const doctors = HS.getDoctors();
+  if (doctors.find(d => d.email === email)) { toast('This email is already registered', 'error'); return; }
+  const colors = ['#2563eb','#16a34a','#7c3aed','#ea580c','#0891b2','#be185d','#d97706','#065f46'];
+  doctors.push({ id: 'd'+HS.uid(), name: name.startsWith('Dr.') ? name : 'Dr. '+name, email, password: pw, contact, spec, dept: dept||spec, color: colors[doctors.length % colors.length], createdAt: HS.now() });
+  HS.saveDoctors(doctors);
+  closeModal('modal-add-doctor');
+  ['d-name','d-email','d-pw','d-contact','d-dept'].forEach(id => document.getElementById(id).value = '');
+  render();
+  toast('Doctor added successfully! They can now login at the Doctor portal.', 'success');
+}
+
+init();
+</script>
+</body>
+</html>

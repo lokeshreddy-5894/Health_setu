@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notice Board — HealthSetu Admin</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="topbar-placeholder"></div>
+<div class="app-layout">
+  <nav class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Main Menu</div>
+      <a class="sidebar-link" href="admin-dashboard.html"><span class="s-icon">🏠</span> Dashboard</a>
+      <a class="sidebar-link" href="admin-doctors.html"><span class="s-icon">🩺</span> Doctors</a>
+      <a class="sidebar-link" href="admin-patients.html"><span class="s-icon">👥</span> Patients</a>
+      <a class="sidebar-link active" href="admin-notices.html"><span class="s-icon">📢</span> Notice Board</a>
+      <a class="sidebar-link" href="admin-inventory.html"><span class="s-icon">📦</span> Inventory</a>
+    </div>
+    <div class="sidebar-footer">
+      <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:flex-start;gap:8px;" onclick="HS.clearSession();window.location.href='login-admin.html'">🚪 Sign Out</button>
+    </div>
+  </nav>
+  <div class="main-content">
+    <div class="page-header-row anim-fade-up">
+      <div class="page-header">
+        <h1>Notice Board</h1>
+        <p>Post hospital-wide notices visible to all doctors and patients</p>
+      </div>
+      <button class="btn btn-primary" onclick="openModal('modal-post')">📢 Post Notice</button>
+    </div>
+    <div id="notices-list" class="anim-fade-up-1"></div>
+  </div>
+</div>
+<div class="modal-overlay" id="modal-post">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Post Notice</div><div class="modal-subtitle">Visible to all doctors and patients</div></div>
+    <div class="form-group"><label class="form-label">Title *</label><input class="form-input" placeholder="e.g. System Maintenance Tonight" id="n-title"></div>
+    <div class="form-group"><label class="form-label">Message *</label><textarea class="form-input" rows="4" placeholder="Write the notice details..." id="n-body"></textarea></div>
+    <div class="form-group"><label class="form-label">Priority Level</label>
+      <select class="form-input" id="n-type">
+        <option value="info">ℹ️ Information</option>
+        <option value="warning">⚠️ Warning</option>
+        <option value="urgent">🚨 Urgent</option>
+        <option value="success">✅ Announcement</option>
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-post')">Cancel</button>
+      <button class="btn btn-primary" onclick="postNotice()">Post Notice</button>
+    </div>
+  </div>
+</div>
+<div class="toast-wrap"></div>
+<script src="db.js"></script>
+<script>
+function init() {
+  const s = HS.requireAuth('admin');
+  if (!s) return;
+  document.getElementById('topbar-placeholder').innerHTML = buildTopbar(s.user.name, 'admin', '#0b1f3a');
+  render(); setupModals();
+}
+function render() {
+  const notices = HS.getNotices();
+  const el = document.getElementById('notices-list');
+  el.innerHTML = notices.length ? notices.map(n => `
+    <div class="notice-item ${n.type}" style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;">
+      <div style="flex:1;">
+        <div class="notice-title">${n.title}</div>
+        <div class="notice-body">${n.body}</div>
+        <div class="notice-meta"><span>👤 ${n.author}</span><span>🕐 ${HS.fmtDate(n.createdAt)}</span></div>
+      </div>
+      <button class="btn btn-danger btn-xs" style="flex-shrink:0;" onclick="del('${n.id}')">Delete</button>
+    </div>`).join('') : '<div class="empty-state"><div class="empty-icon">📢</div><p>No notices posted yet. Post your first notice!</p></div>';
+}
+function postNotice() {
+  const title = document.getElementById('n-title').value.trim();
+  const body = document.getElementById('n-body').value.trim();
+  const type = document.getElementById('n-type').value;
+  if (!title || !body) { toast('Title and message are required', 'error'); return; }
+  const s = HS.getSession();
+  const notices = HS.getNotices();
+  notices.unshift({ id: 'n'+HS.uid(), title, body, type, author: s.user.name, createdAt: HS.now() });
+  HS.saveNotices(notices);
+  closeModal('modal-post');
+  document.getElementById('n-title').value = '';
+  document.getElementById('n-body').value = '';
+  render();
+  toast('Notice posted!', 'success');
+}
+function del(id) {
+  const notices = HS.getNotices().filter(n => n.id !== id);
+  HS.saveNotices(notices);
+  render();
+  toast('Notice deleted', 'info');
+}
+init();
+</script>
+</body>
+</html>

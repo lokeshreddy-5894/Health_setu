@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manage Patients — HealthSetu Admin</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="topbar-placeholder"></div>
+<div class="app-layout">
+  <nav class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Main Menu</div>
+      <a class="sidebar-link" href="admin-dashboard.html"><span class="s-icon">🏠</span> Dashboard</a>
+      <a class="sidebar-link" href="admin-doctors.html"><span class="s-icon">🩺</span> Doctors</a>
+      <a class="sidebar-link active" href="admin-patients.html"><span class="s-icon">👥</span> Patients</a>
+      <a class="sidebar-link" href="admin-notices.html"><span class="s-icon">📢</span> Notice Board</a>
+      <a class="sidebar-link" href="admin-inventory.html"><span class="s-icon">📦</span> Inventory</a>
+    </div>
+    <div class="sidebar-footer">
+      <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:flex-start;gap:8px;" onclick="HS.clearSession();window.location.href='login-admin.html'">🚪 Sign Out</button>
+    </div>
+  </nav>
+  <div class="main-content">
+    <div class="page-header-row anim-fade-up">
+      <div class="page-header">
+        <h1>Patient Management</h1>
+        <p>View all patients and manage their doctor assignments</p>
+      </div>
+    </div>
+    <div class="card anim-fade-up-1">
+      <div class="card-header">
+        <input class="form-input" style="width:280px;" placeholder="🔍 Search patients..." oninput="render(this.value)" id="search">
+        <div style="display:flex;gap:8px;align-items:center;">
+          <span style="font-size:13px;color:var(--g400);">Filter:</span>
+          <select class="form-input" style="width:auto;" onchange="filterAssigned(this.value)" id="assigned-filter">
+            <option value="">All</option>
+            <option value="assigned">Assigned</option>
+            <option value="unassigned">Unassigned</option>
+          </select>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Patient</th><th>Contact</th><th>City</th><th>Registered</th><th>Assigned Doctor</th><th>Appointments</th><th>Actions</th></tr></thead>
+          <tbody id="patient-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ASSIGN DOCTOR MODAL -->
+<div class="modal-overlay" id="modal-assign">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Assign Doctor</div>
+      <div class="modal-subtitle">Select a doctor for <strong id="assign-pt-name">patient</strong></div>
+    </div>
+    <div id="assign-options" style="max-height:340px;overflow-y:auto;"></div>
+    <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal('modal-assign')">Cancel</button></div>
+  </div>
+</div>
+
+<div class="toast-wrap"></div>
+<script src="db.js"></script>
+<script>
+let assigningId = null;
+let assignFilter = '';
+
+function init() {
+  const s = HS.requireAuth('admin');
+  if (!s) return;
+  document.getElementById('topbar-placeholder').innerHTML = buildTopbar(s.user.name, 'admin', '#0b1f3a');
+  // Check if filtering by doctor
+  const docFilter = localStorage.getItem('hs_filter_doc');
+  if (docFilter) { localStorage.removeItem('hs_filter_doc'); }
+  render('', assignFilter, docFilter);
+  setupModals();
+}
+
+function render(search = '', assigned = '', docId = '') {
+  search = document.getElementById('search')?.value || search;
+  assigned = document.getElementById('assigned-filter')?.value || assigned;
+  let patients = HS.getPatients();
+  const doctors = HS.getDoctors();
+  const appts = HS.getAppointments();
+  if (search) patients = patients.filter(p => p.name.toLowerCase().includes(search.toLowerCase()) || p.email.toLowerCase().includes(search.toLowerCase()));
+  if (assigned === 'assigned') patients = patients.filter(p => p.assignedDoctor);
+  if (assigned === 'unassigned') patients = patients.filter(p => !p.assignedDoctor);
+  if (docId) patients = patients.filter(p => p.assignedDoctor === docId);
+
+  const tbody = document.getElementById('patient-tbody');
+  tbody.innerHTML = patients.length ? patients.map(p => {
+    const doc = p.assignedDoctor ? doctors.find(d => d.id === p.assignedDoctor) : null;
+    const apptCnt = appts.filter(a => a.patientId === p.id).length;
+    return `<tr>
+      <td><div><div style="font-weight:600;">${p.name}</div><div style="font-size:12px;color:var(--g400);">${p.email}</div></div></td>
+      <td>${p.contact||'—'}</td>
+      <td>${p.city||'—'}</td>
+      <td>${HS.fmtShort(p.createdAt)}</td>
+      <td>${doc ? `<div style="display:flex;align-items:center;gap:8px;"><div class="doctor-avatar" style="background:${doc.color};width:26px;height:26px;font-size:11px;">${doc.name.charAt(0)}</div><span style="font-size:13px;font-weight:500;">${doc.name}</span></div>` : renderBadge('Unassigned','badge-amber')}</td>
+      <td>${apptCnt} appt${apptCnt!==1?'s':''}</td>
+      <td>
+        <button class="btn btn-primary btn-xs" onclick="openAssign('${p.id}')">Assign Doctor</button>
+        ${p.assignedDoctor ? `<button class="btn btn-outline btn-xs" style="margin-left:4px;" onclick="removeAssign('${p.id}')">Unassign</button>` : ''}
+      </td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">👥</div><p>No patients found.</p></div></td></tr>';
+}
+
+function filterAssigned(v) { assignFilter = v; render(); }
+
+function openAssign(pid) {
+  assigningId = pid;
+  const pt = HS.getPatients().find(p => p.id === pid);
+  document.getElementById('assign-pt-name').textContent = pt?.name;
+  const opts = document.getElementById('assign-options');
+  opts.innerHTML = HS.getDoctors().map(d => {
+    const cnt = HS.getPatients().filter(p => p.assignedDoctor === d.id).length;
+    return `<div onclick="doAssign('${d.id}')" style="display:flex;align-items:center;justify-content:space-between;padding:14px;border:1.5px solid var(--g200);border-radius:10px;margin-bottom:8px;cursor:pointer;" onmouseover="this.style.borderColor='var(--blue)'" onmouseout="this.style.borderColor='var(--g200)'">
+      <div style="display:flex;align-items:center;gap:11px;">
+        <div class="doctor-avatar" style="background:${d.color};width:38px;height:38px;">${d.name.charAt(0)}</div>
+        <div><div style="font-weight:700;font-size:14px;">${d.name}</div><div style="font-size:12px;color:var(--g400);">${d.spec} · ${d.email}</div></div>
+      </div>
+      ${renderBadge(cnt+' patients','badge-blue')}
+    </div>`;
+  }).join('') || '<p style="text-align:center;color:var(--g400);padding:20px;">No doctors available. <a href="admin-doctors.html" style="color:var(--blue);">Add doctors first.</a></p>';
+  openModal('modal-assign');
+}
+
+function doAssign(docId) {
+  const patients = HS.getPatients();
+  const pt = patients.find(p => p.id === assigningId);
+  if (pt) { pt.assignedDoctor = docId; HS.savePatients(patients); }
+  closeModal('modal-assign');
+  render();
+  toast(`${pt?.name} assigned to ${HS.doctorName(docId)}!`, 'success');
+}
+
+function removeAssign(pid) {
+  const patients = HS.getPatients();
+  const pt = patients.find(p => p.id === pid);
+  if (pt) { pt.assignedDoctor = null; HS.savePatients(patients); }
+  render();
+  toast('Doctor assignment removed', 'info');
+}
+
+init();
+</script>
+</body>
+</html>

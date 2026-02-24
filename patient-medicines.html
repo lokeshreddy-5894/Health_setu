@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Medicine Reminders — HealthSetu</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="topbar-placeholder"></div>
+<div class="app-layout">
+  <nav class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Patient Menu</div>
+      <a class="sidebar-link" href="patient-dashboard.html"><span class="s-icon">&#127968;</span> Dashboard</a>
+      <a class="sidebar-link" href="patient-appointments.html"><span class="s-icon">&#128197;</span> Appointments</a>
+      <a class="sidebar-link active" href="patient-medicines.html"><span class="s-icon">&#128138;</span> Medicines</a>
+      <a class="sidebar-link" href="patient-health.html"><span class="s-icon">&#129658;</span> Health Data</a>
+      <a class="sidebar-link" href="patient-reports.html"><span class="s-icon">&#128196;</span> Reports</a>
+      <a class="sidebar-link" href="patient-profile.html"><span class="s-icon">&#128100;</span> My Profile</a>
+    </div>
+    <div class="sidebar-footer">
+      <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:flex-start;gap:8px;" onclick="HS.clearSession();window.location.href='login-patient.html'">🚪 Sign Out</button>
+    </div>
+  </nav>
+  <div class="main-content">
+    <div class="page-header-row anim-fade-up">
+      <div class="page-header"><h1>Medicine Reminders</h1><p>Track all your medications and never miss a dose</p></div>
+      <button class="btn btn-primary" onclick="openModal('modal-self-med')">+ Add Personal Reminder</button>
+    </div>
+    <div class="two-col">
+      <div>
+        <div style="font-weight:700;font-size:15px;color:var(--g700);margin-bottom:14px;display:flex;align-items:center;gap:8px;">
+          🕐 Pending <span class="sidebar-badge" style="background:var(--amber);font-size:11px;" id="pending-count">0</span>
+        </div>
+        <div id="pending-meds"></div>
+      </div>
+      <div>
+        <div style="font-weight:700;font-size:15px;color:var(--g500);margin-bottom:14px;">✅ Taken</div>
+        <div id="taken-meds"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="modal-self-med">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Add Personal Reminder</div><div class="modal-subtitle">Set a reminder for your own medication</div></div>
+    <div class="form-group"><label class="form-label">Medicine Name *</label><input class="form-input" placeholder="e.g. Vitamin D 1000IU" id="s-name"></div>
+    <div class="form-group"><label class="form-label">Due Date & Time</label><input class="form-input" type="datetime-local" id="s-due"></div>
+    <div class="form-group"><label class="form-label">Instructions</label><textarea class="form-input" rows="3" placeholder="e.g. Take 1 tablet after breakfast" id="s-instr"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-self-med')">Cancel</button>
+      <button class="btn btn-primary" onclick="addSelf()">Add Reminder</button>
+    </div>
+  </div>
+</div>
+<div class="toast-wrap"></div>
+<script src="db.js"></script>
+<script>
+function init() {
+  const s = HS.requireAuth('patient');
+  if (!s) return;
+  document.getElementById('topbar-placeholder').innerHTML = buildTopbar(s.user.name, 'patient', '#1a6bff');
+  render(s.user.id); setupModals();
+}
+function render(uid) {
+  const meds = HS.getMedicines().filter(m => m.patientId === uid);
+  const pending = meds.filter(m => !m.taken);
+  const taken = meds.filter(m => m.taken);
+  document.getElementById('pending-count').textContent = pending.length;
+  const pm = document.getElementById('pending-meds');
+  pm.innerHTML = pending.length ? pending.map(m => `
+    <div class="med-card">
+      <div class="med-card-header">
+        <span class="med-name">💊 ${m.name}</span>
+        ${renderBadge('Pending','badge-amber')}
+      </div>
+      <div class="med-time">🕐 ${m.due ? HS.fmtDate(m.due) : 'No time set'}</div>
+      <div class="med-instr">${m.instructions}</div>
+      <button class="btn-take" onclick="take('${m.id}')">✓ Mark as Taken</button>
+    </div>`).join('') : '<div class="empty-state" style="padding:30px;"><div class="empty-icon">✅</div><p>No pending medicines!</p></div>';
+  const tm = document.getElementById('taken-meds');
+  tm.innerHTML = taken.length ? taken.map(m => `
+    <div class="med-card" style="opacity:.7;">
+      <div class="med-card-header">
+        <span class="med-name" style="text-decoration:line-through;color:var(--g400);">💊 ${m.name}</span>
+        ${renderBadge('Taken','badge-green')}
+      </div>
+      <div class="med-time">🕐 ${m.due ? HS.fmtDate(m.due) : 'No time set'}</div>
+      <div class="med-instr">${m.instructions}</div>
+      <button class="btn-take done" disabled>✓ Already Taken</button>
+    </div>`).join('') : '<div class="empty-state" style="padding:30px;"><p>No medicines taken yet.</p></div>';
+}
+function take(id) {
+  const s = HS.getSession();
+  const meds = HS.getMedicines();
+  const m = meds.find(x => x.id === id);
+  if (m) { m.taken = true; HS.saveMedicines(meds); }
+  render(s.user.id);
+  toast('Medicine marked as taken! Great job! 💪', 'success');
+}
+function addSelf() {
+  const name = document.getElementById('s-name').value.trim();
+  const due = document.getElementById('s-due').value;
+  const instr = document.getElementById('s-instr').value.trim();
+  if (!name) { toast('Please enter medicine name', 'error'); return; }
+  const s = HS.getSession();
+  const meds = HS.getMedicines();
+  meds.push({ id: 'm'+HS.uid(), patientId: s.user.id, name, instructions: instr||'Take as directed', due: due||null, addedBy: s.user.id, taken: false, createdAt: HS.now() });
+  HS.saveMedicines(meds);
+  closeModal('modal-self-med');
+  document.getElementById('s-name').value = '';
+  document.getElementById('s-due').value = '';
+  document.getElementById('s-instr').value = '';
+  render(s.user.id);
+  toast('Reminder added!', 'success');
+}
+init();
+</script>
+</body>
+</html>
+

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Professional Report - HealthSetu</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+.page { max-width: 980px; margin: 26px auto; padding: 0 16px; }
+.sheet { background: white; border: 1px solid var(--g200); border-radius: 14px; padding: 26px; }
+.head {
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:16px;
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, #0f3b75 0%, #0e7490 50%, #16a34a 100%);
+  color: #ffffff;
+  box-shadow: 0 8px 20px rgba(15, 59, 117, 0.16);
+}
+.hospital { font-size: 22px; font-weight: 800; color: #ffffff; }
+.sub { font-size: 12px; color: rgba(255,255,255,0.9); margin-top: 4px; }
+.ref { text-align:right; font-size: 12px; color: rgba(255,255,255,0.94); }
+.grid { display:grid; grid-template-columns: 1fr 1fr; gap: 10px 18px; margin-bottom: 14px; }
+.label { font-size: 11px; color: var(--g400); text-transform: uppercase; letter-spacing: .04em; }
+.value { font-size: 14px; color: var(--g800); margin-top: 2px; }
+.sec { border-top: 1px dashed var(--g200); padding-top: 12px; margin-top: 12px; }
+.sec h3 { margin: 0 0 6px; font-size: 14px; color: var(--navy); }
+.sec p { margin: 0; font-size: 13px; color: var(--g700); line-height: 1.5; white-space: pre-wrap; }
+.history-item { border: 1px solid var(--g200); border-radius: 10px; padding: 10px; margin-bottom: 8px; background: var(--g50); }
+.toolbar { display:flex; gap:8px; justify-content:flex-end; margin-bottom: 10px; }
+@media print {
+  .toolbar { display:none; }
+  body { background: white; }
+  .page { margin: 0; padding: 0; max-width: none; }
+  .sheet { border: none; border-radius: 0; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="toolbar">
+    <button class="btn btn-outline" onclick="window.close()">Close</button>
+    <button class="btn btn-primary" onclick="window.print()">Print</button>
+  </div>
+
+  <div class="sheet" id="sheet"></div>
+
+  <div class="card" style="margin-top:14px;" id="history-wrap">
+    <div class="card-header"><div class="card-title">Past Reports</div></div>
+    <div id="history-list"></div>
+  </div>
+</div>
+
+<script src="db.js"></script>
+<script>
+function qp(name) {
+  const u = new URL(window.location.href);
+  return u.searchParams.get(name) || '';
+}
+
+function safe(v, fallback='-') {
+  return v && String(v).trim() ? String(v) : fallback;
+}
+
+function init() {
+  const reportId = qp('id');
+  if (!reportId) {
+    document.getElementById('sheet').innerHTML = '<div class="empty-state"><p>Missing report id.</p></div>';
+    document.getElementById('history-wrap').style.display = 'none';
+    return;
+  }
+
+  const report = HS.getReports().find(r => r.id === reportId);
+  if (!report) {
+    document.getElementById('sheet').innerHTML = '<div class="empty-state"><p>Report not found.</p></div>';
+    document.getElementById('history-wrap').style.display = 'none';
+    return;
+  }
+
+  const patient = HS.getPatients().find(p => p.id === report.patientId) || {};
+  const doctor = HS.getDoctors().find(d => d.id === report.doctorId) || {};
+
+  document.getElementById('sheet').innerHTML = `
+    <div class="head">
+      <div>
+        <div class="hospital">HealthSetu Clinical Report</div>
+        <div class="sub">Comprehensive Medical Documentation for Clinical Review and Care Continuity</div>
+      </div>
+      <div class="ref">
+        <div><strong>Report ID:</strong> ${report.id}</div>
+        <div><strong>Generated:</strong> ${HS.fmtShort(report.createdAt)}</div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div><div class="label">Patient Name</div><div class="value">${safe(patient.name)}</div></div>
+      <div><div class="label">Doctor Name</div><div class="value">${safe(doctor.name)}</div></div>
+      <div><div class="label">Report Type</div><div class="value">${safe(report.type)}</div></div>
+      <div><div class="label">Department</div><div class="value">${safe(report.department)}</div></div>
+      <div><div class="label">Visit Date</div><div class="value">${safe(report.visitDate, HS.fmtShort(report.createdAt))}</div></div>
+      <div><div class="label">Title</div><div class="value">${safe(report.title)}</div></div>
+    </div>
+
+    <div class="sec"><h3>Chief Complaint</h3><p>${safe(report.chiefComplaint, report.notes)}</p></div>
+    <div class="sec"><h3>Clinical Findings</h3><p>${safe(report.findings, 'Not provided')}</p></div>
+    <div class="sec"><h3>Diagnosis / Impression</h3><p>${safe(report.diagnosis, 'Not provided')}</p></div>
+    <div class="sec"><h3>Treatment / Plan</h3><p>${safe(report.plan, 'Not provided')}</p></div>
+    <div class="sec"><h3>Follow-up</h3><p>${safe(report.followUp, 'Not specified')}</p></div>
+    <div class="sec"><h3>Doctor Notes</h3><p>${safe(report.notes, 'No additional notes')}</p></div>
+    ${(report.fileData || report.fileUrl) ? `<div class="sec"><h3>Attached File</h3><p><a href="${report.fileData || report.fileUrl}" target="_blank" download="${report.fileName || 'report'}">Open uploaded file</a></p></div>` : ''}
+  `;
+
+  const past = HS.getReports()
+    .filter(r => r.patientId === report.patientId && r.id !== report.id)
+    .sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  const historyEl = document.getElementById('history-list');
+  if (!past.length) {
+    historyEl.innerHTML = '<div class="empty-state" style="padding:14px;"><p>No past reports for this patient.</p></div>';
+    return;
+  }
+
+  historyEl.innerHTML = past.map(r => `
+    <div class="history-item">
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">
+        <div style="font-weight:700;font-size:13px;">${safe(r.title)}</div>
+        ${renderBadge(r.type || 'Report', 'badge-blue')}
+      </div>
+      <div style="font-size:12px;color:var(--g400);margin-top:3px;">${HS.fmtShort(r.createdAt)} | ${HS.doctorName(r.doctorId)}</div>
+      <div style="margin-top:8px;"><a class="btn btn-outline btn-xs" href="report-view.html?id=${r.id}" target="_blank">Open</a></div>
+    </div>
+  `).join('');
+}
+
+init();
+</script>
+</body>
+</html>

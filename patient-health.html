@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Health Data - HealthSetu</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+.health-hero { background: linear-gradient(135deg,#0b1f3a,#1a6bff); color: white; border-radius: 16px; padding: 22px 24px; margin-bottom: 20px; }
+.health-hero h1 { margin: 0 0 6px; font-size: 26px; }
+.health-hero p { margin: 0; font-size: 14px; color: rgba(255,255,255,.78); }
+.metrics-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.metric-card { background: white; border: 1px solid var(--g200); border-radius: 14px; padding: 22px; }
+.metric-label { font-size: 13px; color: var(--g500); }
+.metric-value { font-size: 38px; font-weight: 800; color: var(--g900); margin-top: 8px; letter-spacing: -0.02em; }
+.metric-sub { font-size: 12px; color: var(--g400); margin-top: 8px; }
+.reports-cta { margin-top: 20px; background: linear-gradient(135deg,#eff6ff,#dbeafe); border: 1px solid #bfdbfe; border-radius: 12px; padding: 16px 18px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.reports-cta h3 { margin: 0 0 4px; font-size: 15px; color: #1e3a8a; }
+.reports-cta p { margin: 0; font-size: 12px; color: #1d4ed8; }
+@media(max-width:800px){ .metrics-wrap{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+<div id="topbar-placeholder"></div>
+<div class="app-layout">
+  <nav class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Patient Menu</div>
+      <a class="sidebar-link" href="patient-dashboard.html"><span class="s-icon">&#127968;</span> Dashboard</a>
+      <a class="sidebar-link" href="patient-appointments.html"><span class="s-icon">&#128197;</span> Appointments</a>
+      <a class="sidebar-link" href="patient-medicines.html"><span class="s-icon">&#128138;</span> Medicines</a>
+      <a class="sidebar-link active" href="patient-health.html"><span class="s-icon">&#129658;</span> Health Data</a>
+      <a class="sidebar-link" href="patient-reports.html"><span class="s-icon">&#128196;</span> Reports</a>
+      <a class="sidebar-link" href="patient-profile.html"><span class="s-icon">&#128100;</span> My Profile</a>
+    </div>
+    <div class="sidebar-footer">
+      <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:flex-start;gap:8px;" onclick="HS.clearSession();window.location.href='login-patient.html'">Sign Out</button>
+    </div>
+  </nav>
+
+  <div class="main-content">
+    <div class="health-hero anim-fade-up">
+      <h1>Health Data</h1>
+      <p>Only BP and Weight are tracked here. Reports are in the separate Reports section.</p>
+    </div>
+
+    <div class="metrics-wrap anim-fade-up-1">
+      <div class="metric-card">
+        <div class="metric-label">Blood Pressure</div>
+        <div class="metric-value" id="v-bp">-</div>
+        <div class="metric-sub">Latest value uploaded by your doctor</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Weight</div>
+        <div class="metric-value" id="v-weight">-</div>
+        <div class="metric-sub">Latest value uploaded by your doctor</div>
+      </div>
+    </div>
+
+    <div class="reports-cta anim-fade-up-2">
+      <div>
+        <h3>Need to view X-ray or lab reports?</h3>
+        <p>Open the separate Reports page to see all doctor-uploaded files.</p>
+      </div>
+      <a class="btn btn-primary" href="patient-reports.html">Open Reports</a>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap"></div>
+<script src="db.js"></script>
+<script>
+function init() {
+  const s = HS.requireAuth('patient');
+  if (!s) return;
+  document.getElementById('topbar-placeholder').innerHTML = buildTopbar(s.user.name, 'patient', '#1a6bff');
+  const p = HS.getPatients().find(x => x.id === s.user.id) || {};
+  document.getElementById('v-bp').textContent = p.bp && p.bp.trim() ? p.bp : '-';
+  document.getElementById('v-weight').textContent = p.weight && String(p.weight).trim() ? `${p.weight} kg` : '-';
+}
+init();
+</script>
+</body>
+</html>

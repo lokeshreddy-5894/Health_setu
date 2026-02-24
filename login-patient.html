@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Patient Portal — HealthSetu</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --blue: #1a6bff;
+    --blue-dark: #1150cc;
+    --blue-light: #e8f0ff;
+    --white: #ffffff;
+    --g50: #f8fafc;
+    --g100: #f1f5f9;
+    --g200: #e2e8f0;
+    --g400: #94a3b8;
+    --g500: #64748b;
+    --g700: #334155;
+    --g900: #0f172a;
+  }
+  html, body { height: 100%; font-family: 'Outfit', sans-serif; background: #fff; }
+  body { overflow-x: hidden; }
+
+  /* ═══ INTRO ═══ */
+  .intro-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: var(--blue);
+    display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 14px;
+    animation: overlayExit 0.6s ease 2.2s forwards;
+  }
+  @keyframes overlayExit { to { opacity:0; pointer-events:none; } }
+  .intro-logo { display:flex; align-items:center; gap:14px; animation:pop .5s cubic-bezier(.34,1.56,.64,1) .3s both; }
+  @keyframes pop { from{opacity:0;transform:scale(.6) translateY(20px)} to{opacity:1;transform:scale(1) translateY(0)} }
+  .intro-icon { width:60px; height:60px; background:white; border-radius:16px; display:flex; align-items:center; justify-content:center; font-size:28px; box-shadow:0 8px 32px rgba(0,0,0,.2); }
+  .intro-name { font-size:32px; font-weight:800; color:white; }
+  .intro-tagline { font-size:13px; color:rgba(255,255,255,.6); letter-spacing:.1em; text-transform:uppercase; animation:pop .5s ease .7s both; }
+  .intro-bar { width:200px; height:3px; background:rgba(255,255,255,.2); border-radius:99px; overflow:hidden; margin-top:8px; animation:pop .4s ease .9s both; }
+  .intro-bar-fill { height:100%; background:white; animation:barFill 1.2s ease 1s forwards; width:0; }
+  @keyframes barFill { to{width:100%} }
+
+  /* ═══ TOP HEADER BAR ═══ */
+  .topbar {
+    height: 60px;
+    background: white;
+    border-bottom: 1px solid var(--g200);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 36px;
+    position: sticky; top: 0; z-index: 10;
+    box-shadow: 0 1px 4px rgba(0,0,0,.04);
+    opacity: 0;
+    animation: topbarReveal .6s ease 2.7s forwards;
+  }
+  @keyframes topbarReveal { from{opacity:0;transform:translateY(-10px)} to{opacity:1;transform:translateY(0)} }
+  /* Blue top accent line */
+  .topbar::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, var(--blue), #4d9fff, var(--blue));
+    background-size: 200%; animation: shimmer 3s linear infinite 3.5s;
+  }
+  @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+
+  .topbar-brand { display:flex; align-items:center; gap:10px; }
+  .brand-icon { width:36px; height:36px; background:var(--blue); border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:900; color:white; box-shadow:0 3px 10px rgba(26,107,255,.3); }
+  .brand-text { font-size:18px; font-weight:800; color:var(--g900); }
+  .brand-text span { color:var(--blue); }
+  .topbar-links { display:flex; gap:10px; }
+  .topbar-link { padding:7px 16px; border-radius:8px; font-size:13px; font-weight:600; text-decoration:none; transition:all .18s; }
+  .tl-outline { color:var(--g500); border:1.5px solid var(--g200); }
+  .tl-outline:hover { border-color:var(--blue); color:var(--blue); }
+  .tl-fill { background:var(--blue); color:white; box-shadow:0 3px 10px rgba(26,107,255,.25); }
+  .tl-fill:hover { background:var(--blue-dark); }
+
+  /* ═══ MAIN CONTAINER ═══ */
+  .main-wrapper {
+    min-height: calc(100vh - 60px);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    opacity: 0;
+    animation: pageReveal .7s ease 2.9s forwards;
+  }
+  @keyframes pageReveal { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+
+  /* ═══ LEFT VISUAL PANEL ═══ */
+  .visual-panel {
+    background: white;
+    padding: 48px 44px;
+    display: flex; flex-direction: column;
+    border-right: 1px solid var(--g100);
+    position: relative; overflow: hidden;
+  }
+
+  .vp-heading { font-family:'Playfair Display',serif; font-size:34px; line-height:1.2; color:var(--g900); margin-bottom:12px; }
+  .vp-heading em { color:var(--blue); font-style:italic; }
+  .vp-sub { font-size:14px; color:var(--g500); line-height:1.75; max-width:360px; margin-bottom:28px; }
+
+  /* Trust badges */
+  .trust-row { display:flex; gap:14px; margin-bottom:32px; flex-wrap:wrap; }
+  .trust-badge { display:flex; align-items:center; gap:8px; padding:8px 14px; background:var(--blue-light); border:1px solid #c7ddff; border-radius:9px; }
+  .tb-icon { font-size:18px; }
+  .tb-text .tb-title { font-size:12px; font-weight:700; color:var(--blue); }
+  .tb-text .tb-sub { font-size:11px; color:var(--g400); }
+
+  /* Photo mosaic */
+  .photo-mosaic {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 10px;
+    min-height: 0;
+  }
+
+  .pm-card { border-radius: 14px; overflow: hidden; position: relative; box-shadow: 0 3px 14px rgba(0,0,0,.09); transition: transform .3s, box-shadow .3s; cursor: pointer; }
+  .pm-card:hover { transform: scale(1.02); box-shadow: 0 8px 28px rgba(0,0,0,.14); }
+  .pm-card.big { grid-row: span 2; }
+  .pm-card img { width:100%; height:100%; object-fit:cover; object-position:top center; display:block; }
+  .pm-label { position:absolute; bottom:0; left:0; right:0; background:linear-gradient(transparent,rgba(11,31,58,.75)); padding:18px 12px 12px; }
+  .pm-label .name { font-size:12px; font-weight:700; color:white; }
+  .pm-label .role { font-size:10px; color:rgba(255,255,255,.65); margin-top:1px; }
+
+  /* Blue vertical accent line */
+  .blue-vline { position:absolute; top:60px; right:0; bottom:0; width:3px; background:linear-gradient(180deg,var(--blue),rgba(26,107,255,.1)); border-radius:99px 0 0 99px; }
+
+  /* ═══ RIGHT FORM PANEL ═══ */
+  .form-panel {
+    background: var(--g50);
+    display: flex; align-items: center; justify-content: center;
+    padding: 40px 48px;
+    position: relative;
+  }
+  .form-panel::before { content:''; position:absolute; top:0; right:0; width:160px; height:160px; background-image:radial-gradient(circle,#c7ddff 1.5px,transparent 1.5px); background-size:18px 18px; opacity:.5; border-radius:0 0 0 100%; }
+
+  .form-container { width:100%; max-width:400px; position:relative; z-index:1; }
+
+  /* Tab switcher */
+  .tab-switcher { display:flex; background:white; border:1.5px solid var(--g200); border-radius:11px; padding:4px; gap:4px; margin-bottom:28px; }
+  .tab-btn { flex:1; padding:9px; border:none; background:transparent; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; font-family:'Outfit',sans-serif; color:var(--g400); transition:all .2s; }
+  .tab-btn.active { background:var(--blue); color:white; box-shadow:0 2px 10px rgba(26,107,255,.28); }
+
+  /* Forms */
+  #login-form, #register-form { display:none; }
+  #login-form.visible, #register-form.visible { display:block; animation:formFade .35s ease; }
+  @keyframes formFade { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+  .form-title { font-size:24px; font-weight:800; color:var(--g900); margin-bottom:4px; }
+  .form-sub { font-size:13px; color:var(--g500); margin-bottom:20px; }
+  .title-underline { width:40px; height:3px; background:var(--blue); border-radius:99px; margin-bottom:22px; }
+
+  .demo-hint { background:var(--blue-light); border:1px solid #bfd5ff; border-left:3px solid var(--blue); border-radius:8px; padding:11px 14px; font-size:12.5px; color:#1d4ed8; line-height:1.7; margin-bottom:20px; }
+  .demo-hint strong { color:#1e40af; }
+
+  .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .form-group { margin-bottom:15px; }
+  .form-label { display:block; font-size:12.5px; font-weight:600; color:var(--g700); margin-bottom:6px; }
+  .input-wrap { position:relative; }
+  .form-input { width:100%; padding:11px 14px; padding-right:40px; border:1.5px solid var(--g200); border-radius:9px; font-size:13.5px; font-family:'Outfit',sans-serif; color:var(--g900); background:white; transition:border-color .2s,box-shadow .2s; outline:none; }
+  .form-input:focus { border-color:var(--blue); box-shadow:0 0 0 3px rgba(26,107,255,.1); }
+  .form-input::placeholder { color:var(--g400); }
+  .pw-eye { position:absolute; right:11px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:var(--g400); font-size:16px; transition:color .2s; }
+  .pw-eye:hover { color:var(--g700); }
+
+  .btn-submit { width:100%; padding:12px; background:var(--blue); color:white; border:none; border-radius:10px; font-size:14px; font-weight:700; font-family:'Outfit',sans-serif; cursor:pointer; transition:all .2s; box-shadow:0 4px 16px rgba(26,107,255,.28); display:flex; align-items:center; justify-content:center; gap:8px; margin-top:4px; }
+  .btn-submit:hover { background:var(--blue-dark); box-shadow:0 6px 22px rgba(26,107,255,.38); transform:translateY(-1px); }
+  .btn-submit .arrow { font-size:16px; transition:transform .2s; }
+  .btn-submit:hover .arrow { transform:translateX(4px); }
+  .spinner { width:15px; height:15px; border:2px solid rgba(255,255,255,.3); border-top-color:white; border-radius:50%; animation:spin .7s linear infinite; display:none; }
+  .btn-submit.loading .spinner { display:block; }
+  .btn-submit.loading .btn-text, .btn-submit.loading .arrow { display:none; }
+  .btn-submit.loading { opacity:.85; pointer-events:none; }
+  @keyframes spin { to{transform:rotate(360deg)} }
+
+  .switch-prompt { text-align:center; font-size:13px; color:var(--g400); margin-top:16px; }
+  .switch-prompt a { color:var(--blue); font-weight:600; cursor:pointer; }
+
+  .footer-note { margin-top:22px; padding-top:16px; border-top:1px solid var(--g200); display:flex; align-items:center; gap:8px; font-size:11px; color:var(--g400); }
+  .secure-badge { display:flex; align-items:center; gap:5px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:5px; padding:3px 9px; font-size:10px; font-weight:700; color:#166534; }
+
+  .toast-wrap { position:fixed; bottom:22px; right:22px; z-index:9999; display:flex; flex-direction:column; gap:8px; }
+  .toast { background:var(--g900); color:white; padding:12px 18px; border-radius:11px; font-size:14px; opacity:0; transform:translateY(10px); transition:all .28s; display:flex; align-items:center; gap:10px; box-shadow:0 8px 24px rgba(0,0,0,.2); min-width:260px; }
+  .toast.show { opacity:1; transform:translateY(0); }
+  .toast.t-error { border-left:4px solid #ef4444; }
+  .toast.t-success { border-left:4px solid #10b981; }
+
+  @media(max-width:768px){ .main-wrapper{grid-template-columns:1fr} .visual-panel{display:none} .form-panel{padding:28px 20px} .topbar-links .tl-outline{display:none} }
+</style>
+</head>
+<body>
+
+<!-- INTRO -->
+<div class="intro-overlay">
+  <div class="intro-logo">
+    <div class="intro-icon">🏥</div>
+    <div class="intro-name">HealthSetu</div>
+  </div>
+  <div class="intro-tagline">Patient Portal</div>
+  <div class="intro-bar"><div class="intro-bar-fill"></div></div>
+</div>
+
+<!-- TOP BAR -->
+<header class="topbar">
+  <div class="topbar-brand">
+    <div class="brand-icon">HS</div>
+    <div class="brand-text">Health<span>Setu</span></div>
+  </div>
+  <div class="topbar-links">
+    <a class="topbar-link tl-outline" href="login-admin.html">🛡️ Admin</a>
+    <a class="topbar-link tl-outline" href="login-doctor.html">🩺 Doctor</a>
+    <a class="topbar-link tl-fill" href="login-patient.html">🧑‍💼 Patient</a>
+  </div>
+</header>
+
+<div class="main-wrapper">
+  <!-- LEFT VISUAL -->
+  <div class="visual-panel">
+    <div class="blue-vline"></div>
+    <div class="vp-heading">Your Health,<br>Your <em>Journey</em>,<br>Your Portal.</div>
+    <p class="vp-sub">Book appointments, manage medicine reminders, track Fitbit health data, and stay connected with your doctor — all from one place.</p>
+
+    <div class="trust-row">
+      <div class="trust-badge">
+        <div class="tb-icon">📅</div>
+        <div class="tb-text"><div class="tb-title">Smart Booking</div><div class="tb-sub">AI-powered scheduling</div></div>
+      </div>
+      <div class="trust-badge">
+        <div class="tb-icon">💊</div>
+        <div class="tb-text"><div class="tb-title">Med Reminders</div><div class="tb-sub">Never miss a dose</div></div>
+      </div>
+      <div class="trust-badge">
+        <div class="tb-icon">⌚</div>
+        <div class="tb-text"><div class="tb-title">Fitbit Sync</div><div class="tb-sub">Real-time vitals</div></div>
+      </div>
+    </div>
+
+    <div class="photo-mosaic">
+      <!-- Big left photo -->
+      <div class="pm-card big">
+        <img src="https://images.unsplash.com/photo-1584467735867-4297ae2ebcee?w=500&q=80&auto=format&fit=crop&crop=center" alt="Doctor consulting patient">
+        <div class="pm-label">
+          <div class="name">Dr. Ananya Rao</div>
+          <div class="role">Senior Physician · Consultation Room 4</div>
+        </div>
+      </div>
+      <!-- Top right -->
+      <div class="pm-card">
+        <img src="https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=400&q=80&auto=format&fit=crop&crop=top" alt="Doctor checking patient">
+        <div class="pm-label">
+          <div class="name">Lab Services</div>
+          <div class="role">State-of-the-art diagnostics</div>
+        </div>
+      </div>
+      <!-- Bottom right -->
+      <div class="pm-card">
+        <img src="https://images.unsplash.com/photo-1530026405186-ed1f139313f8?w=400&q=80&auto=format&fit=crop&crop=center" alt="Patient care">
+        <div class="pm-label">
+          <div class="name">Patient Care</div>
+          <div class="role">Compassionate, personalized</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT FORM -->
+  <div class="form-panel">
+    <div class="form-container">
+      <!-- Tab switcher -->
+      <div class="tab-switcher">
+        <button class="tab-btn active" onclick="showTab('login',this)" id="tab-login">Sign In</button>
+        <button class="tab-btn" onclick="showTab('register',this)" id="tab-register">Create Account</button>
+      </div>
+
+      <!-- LOGIN -->
+      <div id="login-form" class="visible">
+        <div class="form-title">Patient Sign In</div>
+        <p class="form-sub">Access your personal health dashboard</p>
+        <div class="title-underline"></div>
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          <input class="form-input" type="email" id="l-email" placeholder="your@email.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <div class="input-wrap">
+            <input class="form-input" type="password" id="l-pw" placeholder="Your password">
+            <button class="pw-eye" onclick="togglePw('l-pw','l-eye')" id="l-eye">Show</button>
+          </div>
+        </div>
+        <button class="btn-submit" id="login-btn" onclick="doLogin()">
+          <span class="btn-text">Sign In to Portal</span>
+          <span class="arrow">→</span>
+          <div class="spinner"></div>
+        </button>
+        <p class="switch-prompt">New patient? <a onclick="showTab('register',document.getElementById('tab-register'))">Create an account →</a></p>
+      </div>
+
+      <!-- REGISTER -->
+      <div id="register-form">
+        <div class="form-title">Join HealthSetu</div>
+        <p class="form-sub">Create your free patient account</p>
+        <div class="title-underline"></div>
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Full Name *</label><input class="form-input" placeholder="John Doe" id="r-name" style="padding-right:14px;"></div>
+          <div class="form-group"><label class="form-label">Email *</label><input class="form-input" type="email" placeholder="john@email.com" id="r-email" style="padding-right:14px;"></div>
+          <div class="form-group"><label class="form-label">Password *</label>
+            <div class="input-wrap"><input class="form-input" type="password" placeholder="Min 6 chars" id="r-pw"><button class="pw-eye" onclick="togglePw('r-pw','r-eye')" id="r-eye">Show</button></div>
+          </div>
+          <div class="form-group"><label class="form-label">Mobile</label><input class="form-input" placeholder="+91 XXXXXXXXXX" id="r-mobile" style="padding-right:14px;"></div>
+          <div class="form-group"><label class="form-label">City</label><input class="form-input" placeholder="Pune" id="r-city" style="padding-right:14px;"></div>
+          <div class="form-group"><label class="form-label">Address</label><input class="form-input" placeholder="Your address" id="r-address" style="padding-right:14px;"></div>
+        </div>
+        <button class="btn-submit" id="reg-btn" onclick="doRegister()">
+          <span class="btn-text">Create Patient Account</span>
+          <span class="arrow">→</span>
+          <div class="spinner"></div>
+        </button>
+        <p class="switch-prompt">Already registered? <a onclick="showTab('login',document.getElementById('tab-login'))">Sign in →</a></p>
+      </div>
+
+      <div class="footer-note">
+        <div class="secure-badge">🔒 Secured</div>
+        <span>HealthSetu v2.0 · Your data is private</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<script>
+  setTimeout(() => { const el = document.querySelector('.intro-overlay'); if(el) el.remove(); }, 3200);
+
+  function showTab(tab, btn) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('login-form').classList.toggle('visible', tab === 'login');
+    document.getElementById('register-form').classList.toggle('visible', tab === 'register');
+  }
+
+  function togglePw(inputId, btnId) {
+    const inp = document.getElementById(inputId), btn = document.getElementById(btnId);
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+    btn.textContent = inp.type === 'password' ? 'Show' : 'Hide';
+  }
+
+  function toast(msg, type='info') {
+    const wrap = document.getElementById('toast-wrap');
+    const icons = {success:'✅',error:'❌',info:'ℹ️'};
+    const el = document.createElement('div');
+    el.className = `toast t-${type}`;
+    el.innerHTML = `<span>${icons[type]}</span><span>${msg}</span>`;
+    wrap.appendChild(el);
+    setTimeout(() => el.classList.add('show'), 10);
+    setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 300); }, 3800);
+  }
+
+  function getHS(key) { try { return JSON.parse(localStorage.getItem('hs_'+key)); } catch { return null; } }
+  function setHS(key, val) { localStorage.setItem('hs_'+key, JSON.stringify(val)); }
+  function uid() { return '_'+Math.random().toString(36).substr(2,9); }
+
+  function doLogin() {
+    const email = document.getElementById('l-email').value.trim().toLowerCase();
+    const pw = document.getElementById('l-pw').value;
+    if (!email || !pw) { toast('Please enter email and password', 'error'); return; }
+    const btn = document.getElementById('login-btn');
+    btn.classList.add('loading');
+    setTimeout(() => {
+      btn.classList.remove('loading');
+      const patients = getHS('patients') || [];
+      const pt = patients.find(p => p.email.toLowerCase() === email && p.password === pw);
+      if (pt) {
+        setHS('session', { user: pt, role: 'patient', time: Date.now() });
+        toast('Welcome, ' + pt.name.split(' ')[0] + '! 👋', 'success');
+        setTimeout(() => { window.location.href = 'patient-dashboard.html'; }, 900);
+      } else {
+        toast('Invalid email or password.', 'error');
+      }
+    }, 1200);
+  }
+
+  function doRegister() {
+    const name = document.getElementById('r-name').value.trim();
+    const email = document.getElementById('r-email').value.trim().toLowerCase();
+    const pw = document.getElementById('r-pw').value;
+    const mobile = document.getElementById('r-mobile').value.trim();
+    const city = document.getElementById('r-city').value.trim();
+    const address = document.getElementById('r-address').value.trim();
+    if (!name || !email || !pw) { toast('Name, email and password are required', 'error'); return; }
+    if (pw.length < 6) { toast('Password must be at least 6 characters', 'error'); return; }
+    const patients = getHS('patients') || [];
+    if (patients.find(p => p.email === email)) { toast('Email already registered. Please sign in.', 'error'); return; }
+    const btn = document.getElementById('reg-btn');
+    btn.classList.add('loading');
+    setTimeout(() => {
+      btn.classList.remove('loading');
+      const doctors = getHS('doctors') || [];
+      const defaultDoctorId = doctors.length ? doctors[0].id : null;
+      const newPt = { id: 'p'+uid(), name, email, password: pw, contact: mobile, city, address, assignedDoctor: defaultDoctorId, createdAt: new Date().toISOString() };
+      patients.push(newPt);
+      setHS('patients', patients);
+      setHS('session', { user: newPt, role: 'patient', time: Date.now() });
+      toast('Account created! Welcome, ' + name.split(' ')[0] + '! 🎉', 'success');
+      setTimeout(() => { window.location.href = 'patient-dashboard.html'; }, 900);
+    }, 1400);
+  }
+
+  document.getElementById('l-pw').addEventListener('keypress', e => { if(e.key==='Enter') doLogin(); });
+</script>
+</body>
+</html>

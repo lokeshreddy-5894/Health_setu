@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Doctor Dashboard — HealthSetu</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+.notice-urgent-strip { background: linear-gradient(135deg,#fff5f5,#fee2e2); border: 1.5px solid var(--red); border-radius: 12px; padding: 14px 18px; margin-bottom: 10px; position: relative; overflow: hidden; }
+.notice-urgent-strip::before { content: '🚨'; position: absolute; right: 14px; top: 50%; transform: translateY(-50%); font-size: 24px; opacity: .4; }
+.appt-today-card { background: var(--g50); border: 1.5px solid var(--g200); border-radius: 11px; padding: 14px 16px; margin-bottom: 10px; transition: all .2s; }
+.appt-today-card:hover { border-color: var(--blue); background: #eff6ff; }
+.time-badge { background: var(--navy); color: white; padding: 4px 10px; border-radius: 7px; font-size: 12px; font-weight: 600; }
+</style>
+</head>
+<body>
+<div id="topbar-placeholder"></div>
+<div class="app-layout">
+  <nav class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Doctor Menu</div>
+      <a class="sidebar-link active" href="doctor-dashboard.html"><span class="s-icon">🏠</span> Dashboard</a>
+      <a class="sidebar-link" href="doctor-appointments.html"><span class="s-icon">📅</span> Appointments</a>
+      <a class="sidebar-link" href="doctor-patients.html"><span class="s-icon">👥</span> My Patients</a>
+      <a class="sidebar-link" href="doctor-notices.html"><span class="s-icon">📢</span> Notices</a>
+    </div>
+    <div class="sidebar-footer">
+      <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:flex-start;gap:8px;" onclick="HS.clearSession();window.location.href='login-doctor.html'">🚪 Sign Out</button>
+    </div>
+  </nav>
+  <div class="main-content">
+    <div class="page-header-row anim-fade-up">
+      <div class="page-header">
+        <h1 id="welcome-msg">Good morning, Doctor!</h1>
+        <p id="welcome-sub">Here's your schedule and updates</p>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <a href="doctor-appointments.html" class="btn btn-outline btn-sm">📅 View All Appointments</a>
+        <a href="doctor-patients.html" class="btn btn-primary btn-sm">👥 My Patients</a>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-grid stats-grid-3 anim-fade-up-1">
+      <div class="stat-card">
+        <div class="stat-card-top"><span class="stat-label">My Patients</span><div class="stat-icon si-blue">👥</div></div>
+        <div class="stat-value" id="s-pts">0</div>
+        <div class="stat-meta">Assigned to me</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-top"><span class="stat-label">Total Appointments</span><div class="stat-icon si-green">📅</div></div>
+        <div class="stat-value" id="s-appts">0</div>
+        <div class="stat-meta">All appointments</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-top"><span class="stat-label">Pending</span><div class="stat-icon si-amber">⏳</div></div>
+        <div class="stat-value" id="s-pending">0</div>
+        <div class="stat-meta">Awaiting confirmation</div>
+      </div>
+    </div>
+
+    <div class="two-col anim-fade-up-2">
+      <!-- TODAY'S APPOINTMENTS -->
+      <div class="card">
+        <div class="card-header">
+          <div><div class="card-title">📅 Today's & Recent Appointments</div><div class="card-subtitle">Latest scheduled visits</div></div>
+          <a href="doctor-appointments.html" class="btn btn-outline btn-xs">View All</a>
+        </div>
+        <div id="today-appts"></div>
+      </div>
+
+      <!-- IMPORTANT NOTICES -->
+      <div class="card">
+        <div class="card-header">
+          <div><div class="card-title">🚨 Important Notices</div><div class="card-subtitle">From hospital administration</div></div>
+          <a href="doctor-notices.html" class="btn btn-outline btn-xs">All Notices</a>
+        </div>
+        <div id="notices-panel"></div>
+      </div>
+    </div>
+
+    <!-- PATIENT QUICK VIEW -->
+    <div class="card anim-fade-up-3" style="margin-top:20px;">
+      <div class="card-header">
+        <div class="card-title">👥 My Patients — Quick View</div>
+        <a href="doctor-patients.html" class="btn btn-primary btn-xs">Manage All</a>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Patient</th><th>Contact</th><th>City</th><th>Appointments</th><th>Actions</th></tr></thead>
+          <tbody id="pt-quick-table"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="toast-wrap"></div>
+<script src="db.js"></script>
+<script>
+function init() {
+  const s = HS.requireAuth('doctor');
+  if (!s) return;
+  const doc = s.user;
+  document.getElementById('topbar-placeholder').innerHTML = buildTopbar(doc.name, 'doctor', doc.color || '#16a34a');
+  document.getElementById('welcome-msg').textContent = `${HS.greeting()}, ${doc.name}! 👋`;
+  document.getElementById('welcome-sub').textContent = `${new Date().toLocaleDateString('en-US', {weekday:'long',month:'long',day:'numeric'})}`;
+  render(doc);
+}
+
+function render(doc) {
+  const patients = HS.getPatients().filter(p => p.assignedDoctor === doc.id);
+  const appts = HS.getAppointments().filter(a => a.doctorId === doc.id);
+  const pending = appts.filter(a => a.status === 'pending');
+
+  document.getElementById('s-pts').textContent = patients.length;
+  document.getElementById('s-appts').textContent = appts.length;
+  document.getElementById('s-pending').textContent = pending.length;
+
+  // Today's appointments (show latest 4)
+  const ta = document.getElementById('today-appts');
+  ta.innerHTML = appts.slice(0,4).map(a => {
+    const pt = HS.getPatients().find(p => p.id === a.patientId);
+    return `<div class="appt-today-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <div style="font-weight:700;font-size:13px;">👤 ${pt?.name||'Unknown Patient'}</div>
+        ${renderBadge(a.status, HS.statusBadge(a.status))}
+      </div>
+      <div style="font-size:12px;color:var(--g400);margin-bottom:5px;">${a.datetime ? HS.fmtDate(a.datetime) : 'Date not confirmed'} · ${a.type}</div>
+      <div style="font-size:13px;color:var(--g600);">${a.symptoms.substring(0,90)}${a.symptoms.length>90?'...':''}</div>
+      <div style="display:flex;gap:6px;margin-top:10px;">
+        <a href="doctor-patients.html" class="btn btn-outline btn-xs">View Patient</a>
+        ${a.status!=='completed'
+          ? `<button class="btn btn-success btn-xs" onclick="markDone('${a.id}')">Complete</button>`
+          : `<button class="btn btn-outline btn-xs" disabled>Completed</button>`}
+      </div>
+    </div>`;
+  }).join('') || '<div class="empty-state" style="padding:28px;"><div class="empty-icon">📅</div><p>No appointments yet.</p></div>';
+
+  // Notices
+  const notices = HS.getNotices();
+  const np = document.getElementById('notices-panel');
+  np.innerHTML = notices.slice(0,4).map(n => `
+    <div class="notice-item ${n.type}" style="margin-bottom:10px;">
+      <div class="notice-title">${n.title}</div>
+      <div class="notice-body">${n.body.substring(0,100)}${n.body.length>100?'...':''}</div>
+      <div class="notice-meta"><span>🕐 ${HS.fmtShort(n.createdAt)}</span></div>
+    </div>`).join('') || '<div class="empty-state" style="padding:24px;"><div class="empty-icon">📢</div><p>No notices from admin.</p></div>';
+
+  // Patient quick table
+  const tbody = document.getElementById('pt-quick-table');
+  tbody.innerHTML = patients.map(p => {
+    const cnt = HS.getAppointments().filter(a => a.patientId === p.id).length;
+    return `<tr>
+      <td><div style="font-weight:600;">${p.name}</div><div style="font-size:12px;color:var(--g400);">${p.email}</div></td>
+      <td>${p.contact||'—'}</td>
+      <td>${p.city||'—'}</td>
+      <td>${cnt} appt${cnt!==1?'s':''}</td>
+      <td><a href="doctor-patients.html" class="btn btn-primary btn-xs">View</a></td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="5"><div class="empty-state" style="padding:20px;"><div class="empty-icon">👥</div><p>No patients assigned yet. Contact admin.</p></div></td></tr>';
+}
+
+function markDone(id) {
+  const appts = HS.getAppointments();
+  const a = appts.find(x => x.id === id);
+  if (a) { a.status = 'completed'; HS.saveAppointments(appts); }
+  const s = HS.getSession();
+  render(s.user);
+  toast('Appointment marked as completed!', 'success');
+}
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Login — HealthSetu</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --blue: #1a6bff;
+    --blue-dark: #1150cc;
+    --blue-light: #e8f0ff;
+    --navy: #0b1f3a;
+    --white: #ffffff;
+    --g50: #f8fafc;
+    --g100: #f1f5f9;
+    --g200: #e2e8f0;
+    --g400: #94a3b8;
+    --g500: #64748b;
+    --g700: #334155;
+    --g900: #0f172a;
+  }
+
+  html, body {
+    height: 100%;
+    font-family: 'Outfit', sans-serif;
+    background: #fff;
+    overflow: hidden;
+  }
+
+  /* ═══ INTRO ANIMATION OVERLAY ═══ */
+  .intro-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: var(--blue);
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 16px;
+    animation: overlayExit 0.6s ease 2.2s forwards;
+  }
+  @keyframes overlayExit {
+    to { opacity: 0; pointer-events: none; transform: scale(1.04); }
+  }
+  .intro-logo {
+    display: flex; align-items: center; gap: 14px;
+    animation: introPop 0.5s cubic-bezier(.34,1.56,.64,1) 0.3s both;
+  }
+  @keyframes introPop {
+    from { opacity: 0; transform: scale(0.6) translateY(20px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .intro-icon {
+    width: 60px; height: 60px; background: white; border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px; font-weight: 900; color: var(--blue);
+    box-shadow: 0 8px 32px rgba(0,0,0,.2);
+  }
+  .intro-name {
+    font-size: 32px; font-weight: 800; color: white; letter-spacing: -0.5px;
+  }
+  .intro-name span { opacity: 0.75; }
+  .intro-tagline {
+    font-size: 14px; color: rgba(255,255,255,0.65); letter-spacing: 0.1em;
+    text-transform: uppercase; font-weight: 500;
+    animation: introPop 0.5s ease 0.7s both;
+  }
+  .intro-bar {
+    width: 200px; height: 3px; background: rgba(255,255,255,.2); border-radius: 99px;
+    overflow: hidden; animation: introPop 0.4s ease 0.9s both; margin-top: 8px;
+  }
+  .intro-bar-fill {
+    height: 100%; background: white; border-radius: 99px;
+    animation: barFill 1.2s ease 1s forwards;
+    width: 0%;
+  }
+  @keyframes barFill { to { width: 100%; } }
+
+  /* ═══ MAIN PAGE ═══ */
+  .page {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    height: 100vh;
+    opacity: 0;
+    animation: pageReveal 0.7s ease 2.6s forwards;
+  }
+  @keyframes pageReveal {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ═══ LEFT PANEL ═══ */
+  .left-panel {
+    position: relative;
+    background: white;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Top blue accent line */
+  .blue-topline {
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--blue) 0%, #4d9fff 50%, var(--blue) 100%);
+    background-size: 200% 100%;
+    animation: lineShimmer 3s linear infinite 3s;
+  }
+  @keyframes lineShimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  /* Photo collage */
+  .photo-area {
+    flex: 1;
+    position: relative;
+    padding: 40px 40px 0;
+    display: flex; flex-direction: column;
+  }
+
+  .brand-mark {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 32px;
+    animation: slideRight 0.6s ease 2.9s both;
+  }
+  @keyframes slideRight {
+    from { opacity: 0; transform: translateX(-20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  .brand-icon {
+    width: 40px; height: 40px; background: var(--blue); border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 900; color: white;
+    box-shadow: 0 4px 14px rgba(26,107,255,.35);
+  }
+  .brand-text { font-size: 20px; font-weight: 800; color: var(--g900); }
+  .brand-text span { color: var(--blue); }
+
+  .hero-heading {
+    font-family: 'Playfair Display', serif;
+    font-size: 34px; line-height: 1.2;
+    color: var(--g900); margin-bottom: 10px;
+    animation: slideRight 0.6s ease 3.0s both;
+  }
+  .hero-heading em { color: var(--blue); font-style: italic; }
+  .hero-sub {
+    font-size: 14px; color: var(--g500); line-height: 1.7; max-width: 340px;
+    animation: slideRight 0.6s ease 3.1s both;
+  }
+
+  /* Doctor photos grid */
+  .photos-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 10px;
+    margin-top: 28px;
+    min-height: 0;
+    animation: photosReveal 0.8s ease 3.2s both;
+  }
+  @keyframes photosReveal {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .photo-card {
+    border-radius: 14px;
+    overflow: hidden;
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 2px 12px rgba(0,0,0,.08);
+  }
+  .photo-card:hover { transform: scale(1.03); box-shadow: 0 8px 28px rgba(0,0,0,.14); }
+  .photo-card.tall { grid-row: span 2; }
+  .photo-card.wide { grid-column: span 2; }
+
+  .photo-card img {
+    width: 100%; height: 100%;
+    object-fit: cover; object-position: top center;
+    display: block;
+  }
+  .photo-card-overlay {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: linear-gradient(transparent, rgba(11,31,58,0.75));
+    padding: 20px 14px 12px;
+  }
+  .photo-card-name {
+    font-size: 12px; font-weight: 700; color: white;
+  }
+  .photo-card-title {
+    font-size: 10px; color: rgba(255,255,255,.7); margin-top: 1px;
+  }
+
+  /* Blue accent stripe left border */
+  .left-panel::after {
+    content: '';
+    position: absolute; top: 0; right: 0; bottom: 0;
+    width: 1px;
+    background: linear-gradient(180deg, var(--blue) 0%, #e2f0ff 40%, #e2f0ff 60%, var(--blue) 100%);
+  }
+
+  /* ═══ RIGHT PANEL (FORM) ═══ */
+  .right-panel {
+    background: white;
+    display: flex; align-items: center; justify-content: center;
+    padding: 40px 56px;
+    position: relative;
+  }
+
+  /* Decorative blue dots pattern */
+  .right-panel::before {
+    content: '';
+    position: absolute; top: 0; right: 0;
+    width: 180px; height: 180px;
+    background-image: radial-gradient(circle, #c7ddff 1.5px, transparent 1.5px);
+    background-size: 18px 18px;
+    opacity: 0.5;
+    border-radius: 0 0 0 100%;
+  }
+  .right-panel::after {
+    content: '';
+    position: absolute; bottom: 0; left: 0;
+    width: 120px; height: 120px;
+    background-image: radial-gradient(circle, #c7ddff 1.5px, transparent 1.5px);
+    background-size: 18px 18px;
+    opacity: 0.4;
+    border-radius: 0 100% 0 0;
+  }
+
+  .form-box {
+    width: 100%; max-width: 380px;
+    position: relative; z-index: 1;
+    animation: formSlideUp 0.7s ease 2.9s both;
+  }
+  @keyframes formSlideUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .role-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--blue-light); color: var(--blue);
+    padding: 6px 14px; border-radius: 999px;
+    font-size: 12px; font-weight: 700; letter-spacing: 0.06em;
+    text-transform: uppercase; margin-bottom: 20px;
+  }
+  .role-dot { width: 7px; height: 7px; background: var(--blue); border-radius: 50%; animation: pulse 1.8s ease infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(0.8)} }
+
+  .form-title { font-size: 28px; font-weight: 800; color: var(--g900); margin-bottom: 6px; }
+  .form-sub { font-size: 14px; color: var(--g500); margin-bottom: 28px; }
+
+  /* Blue accent line under title */
+  .title-line {
+    width: 48px; height: 3px; background: var(--blue); border-radius: 99px;
+    margin-bottom: 28px;
+  }
+
+  .demo-hint {
+    background: var(--blue-light);
+    border: 1px solid #bfd5ff;
+    border-left: 3px solid var(--blue);
+    border-radius: 8px; padding: 12px 14px;
+    font-size: 12.5px; color: #1d4ed8;
+    line-height: 1.7; margin-bottom: 22px;
+  }
+  .demo-hint strong { color: var(--blue-dark); }
+
+  .form-group { margin-bottom: 18px; }
+  .form-label {
+    display: block; font-size: 13px; font-weight: 600;
+    color: var(--g700); margin-bottom: 7px;
+  }
+  .input-wrap { position: relative; }
+  .form-input {
+    width: 100%; padding: 12px 16px; padding-right: 44px;
+    border: 1.5px solid var(--g200); border-radius: 10px;
+    font-size: 14px; font-family: 'Outfit', sans-serif;
+    color: var(--g900); background: white;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+  }
+  .form-input:focus {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(26,107,255,.12);
+  }
+  .form-input::placeholder { color: var(--g400); }
+  .pw-eye {
+    position: absolute; right: 13px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; cursor: pointer; color: var(--g400);
+    font-size: 17px; transition: color 0.2s;
+  }
+  .pw-eye:hover { color: var(--g700); }
+
+  .btn-login {
+    width: 100%; padding: 13px;
+    background: var(--blue); color: white;
+    border: none; border-radius: 10px;
+    font-size: 15px; font-weight: 700;
+    font-family: 'Outfit', sans-serif;
+    cursor: pointer; transition: all 0.2s;
+    box-shadow: 0 4px 16px rgba(26,107,255,.3);
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    margin-bottom: 18px;
+  }
+  .btn-login:hover {
+    background: var(--blue-dark);
+    box-shadow: 0 6px 24px rgba(26,107,255,.4);
+    transform: translateY(-1px);
+  }
+  .btn-login:active { transform: translateY(0); }
+
+  .btn-arrow { font-size: 18px; transition: transform 0.2s; }
+  .btn-login:hover .btn-arrow { transform: translateX(4px); }
+
+  .divider {
+    display: flex; align-items: center; gap: 12px;
+    font-size: 12px; color: var(--g400); margin-bottom: 18px;
+  }
+  .divider::before, .divider::after {
+    content: ''; flex: 1; height: 1px; background: var(--g200);
+  }
+
+  .other-portals {
+    display: flex; gap: 10px;
+  }
+  .portal-btn {
+    flex: 1; padding: 10px 12px;
+    background: var(--g50); border: 1.5px solid var(--g200);
+    border-radius: 9px; font-size: 13px; font-weight: 600;
+    color: var(--g600); cursor: pointer; font-family: 'Outfit', sans-serif;
+    transition: all 0.18s; text-align: center; text-decoration: none;
+    display: block;
+  }
+  .portal-btn:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-light); }
+
+  .footer-note {
+    margin-top: 28px; padding-top: 18px;
+    border-top: 1px solid var(--g100);
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; color: var(--g400);
+  }
+  .secure-badge {
+    display: flex; align-items: center; gap: 5px;
+    background: #f0fdf4; border: 1px solid #bbf7d0;
+    border-radius: 6px; padding: 4px 10px;
+    font-size: 11px; font-weight: 600; color: #166534;
+  }
+
+  /* Loading state */
+  .btn-login.loading {
+    pointer-events: none; opacity: 0.85;
+  }
+  .spinner {
+    width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.3);
+    border-top-color: white; border-radius: 50%;
+    animation: spin 0.7s linear infinite; display: none;
+  }
+  .btn-login.loading .spinner { display: block; }
+  .btn-login.loading .btn-text { display: none; }
+  .btn-login.loading .btn-arrow { display: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Toast */
+  .toast-wrap { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+  .toast {
+    background: var(--g900); color: white; padding: 12px 18px; border-radius: 11px;
+    font-size: 14px; font-weight: 500; opacity: 0; transform: translateY(10px);
+    transition: all .28s; display: flex; align-items: center; gap: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.2); min-width: 260px;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast.t-error { border-left: 4px solid #ef4444; }
+  .toast.t-success { border-left: 4px solid #10b981; }
+
+  @media (max-width: 768px) {
+    .page { grid-template-columns: 1fr; }
+    .left-panel { display: none; }
+    .right-panel { padding: 32px 24px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ INTRO ANIMATION ══ -->
+<div class="intro-overlay" id="intro">
+  <div class="intro-logo">
+    <div class="intro-icon">HS</div>
+    <div class="intro-name">Health<span>Setu</span></div>
+  </div>
+  <div class="intro-tagline">Hospital Management System</div>
+  <div class="intro-bar">
+    <div class="intro-bar-fill"></div>
+  </div>
+</div>
+
+<!-- ══ MAIN PAGE ══ -->
+<div class="page">
+
+  <!-- LEFT: BRAND + PHOTOS -->
+  <div class="left-panel">
+    <div class="blue-topline"></div>
+    <div class="photo-area">
+      <div class="brand-mark">
+        <div class="brand-icon">HS</div>
+        <div class="brand-text">Health<span>Setu</span></div>
+      </div>
+
+      <div class="hero-heading">
+        Trusted Care,<br><em>Smarter</em><br>Management.
+      </div>
+      <p class="hero-sub">
+        The complete hospital management platform built for modern healthcare professionals.
+      </p>
+
+      <!-- PHOTO GRID — real Unsplash doctor photos -->
+      <div class="photos-grid">
+        <!-- Large tall card -->
+        <div class="photo-card tall">
+          <img src="https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400&q=80&auto=format&fit=crop" alt="Doctor" loading="lazy">
+          <div class="photo-card-overlay">
+            <div class="photo-card-name">Dr. Arjun Mehta</div>
+            <div class="photo-card-title">Chief of Surgery</div>
+          </div>
+        </div>
+        <!-- Top right -->
+        <div class="photo-card">
+          <img src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400&q=80&auto=format&fit=crop" alt="Doctor" loading="lazy">
+          <div class="photo-card-overlay">
+            <div class="photo-card-name">Dr. Priya Nair</div>
+            <div class="photo-card-title">Cardiologist</div>
+          </div>
+        </div>
+        <!-- Top right small -->
+        <div class="photo-card">
+          <img src="https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&q=80&auto=format&fit=crop" alt="Doctor" loading="lazy">
+          <div class="photo-card-overlay">
+            <div class="photo-card-name">Dr. Ramesh K.</div>
+            <div class="photo-card-title">Neurologist</div>
+          </div>
+        </div>
+        <!-- Bottom middle -->
+        <div class="photo-card">
+          <img src="https://images.unsplash.com/photo-1594824476967-48c8b964273f?w=400&q=80&auto=format&fit=crop" alt="Doctor" loading="lazy">
+          <div class="photo-card-overlay">
+            <div class="photo-card-name">Dr. Ananya R.</div>
+            <div class="photo-card-title">Pediatrician</div>
+          </div>
+        </div>
+        <!-- Bottom right -->
+        <div class="photo-card">
+          <img src="https://images.unsplash.com/photo-1582750433449-648ed127bb54?w=400&q=80&auto=format&fit=crop" alt="Doctor" loading="lazy">
+          <div class="photo-card-overlay">
+            <div class="photo-card-name">Dr. Sanjay V.</div>
+            <div class="photo-card-title">Oncologist</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: LOGIN FORM -->
+  <div class="right-panel">
+    <div class="form-box">
+      <div class="role-pill">
+        <div class="role-dot"></div>
+        Admin Portal
+      </div>
+
+      <div class="form-title">Welcome Back</div>
+      <p class="form-sub">Sign in to the HealthSetu Admin Dashboard</p>
+      <div class="title-line"></div>
+
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <div class="input-wrap">
+          <input class="form-input" type="email" id="email" placeholder="admin@healthsetu.com" autocomplete="email">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <div class="input-wrap">
+          <input class="form-input" type="password" id="pw" placeholder="Enter your password" autocomplete="current-password">
+          <button class="pw-eye" onclick="togglePw()" id="pw-eye-btn">Show</button>
+        </div>
+      </div>
+
+      <button class="btn-login" id="login-btn" onclick="doLogin()">
+        <span class="btn-text">Sign In to Admin Panel</span>
+        <span class="btn-arrow">→</span>
+        <div class="spinner"></div>
+      </button>
+
+      <div class="divider">or access another portal</div>
+
+      <div class="other-portals">
+        <a class="portal-btn" href="login-doctor.html">🩺 Doctor Login</a>
+        <a class="portal-btn" href="login-patient.html">🧑‍💼 Patient Login</a>
+      </div>
+
+      <div class="footer-note">
+        <div class="secure-badge">🔒 SSL Secured</div>
+        <span>HealthSetu v2.0 · All data encrypted</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<script>
+  // Remove intro after animation completes
+  setTimeout(() => {
+    const el = document.getElementById('intro');
+    if (el) el.remove();
+  }, 3200);
+
+  function togglePw() {
+    const inp = document.getElementById('pw');
+    const btn = document.getElementById('pw-eye-btn');
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+    btn.textContent = inp.type === 'password' ? 'Show' : 'Hide';
+  }
+
+  function toast(msg, type = 'info') {
+    const wrap = document.getElementById('toast-wrap');
+    const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+    const el = document.createElement('div');
+    el.className = `toast t-${type}`;
+    el.innerHTML = `<span>${icons[type]||'ℹ️'}</span><span>${msg}</span>`;
+    wrap.appendChild(el);
+    setTimeout(() => el.classList.add('show'), 10);
+    setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 300); }, 3800);
+  }
+
+  function doLogin() {
+    const email = document.getElementById('email').value.trim().toLowerCase();
+    const pw = document.getElementById('pw').value;
+    if (!email || !pw) { toast('Please enter your email and password', 'error'); return; }
+
+    const btn = document.getElementById('login-btn');
+    btn.classList.add('loading');
+
+    setTimeout(() => {
+      btn.classList.remove('loading');
+      if (email === 'admin@healthsetu.com' && pw === 'admin123') {
+        try {
+          const session = { user: { id: 'admin', name: 'Admin', email }, role: 'admin', time: Date.now() };
+          localStorage.setItem('hs_session', JSON.stringify(session));
+        } catch(e) {}
+        toast('Welcome, Admin! Redirecting...', 'success');
+        setTimeout(() => { window.location.href = 'admin-dashboard.html'; }, 900);
+      } else {
+        toast('Invalid admin credentials. Please try again.', 'error');
+      }
+    }, 1200);
+  }
+
+  document.getElementById('pw').addEventListener('keypress', e => {
+    if (e.key === 'Enter') doLogin();
+  });
+</script>
+</body>
+</html>

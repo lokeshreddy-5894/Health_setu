@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Appointments — HealthSetu Doctor</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="topbar-placeholder"></div>
+<div class="app-layout">
+  <nav class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Doctor Menu</div>
+      <a class="sidebar-link" href="doctor-dashboard.html"><span class="s-icon">🏠</span> Dashboard</a>
+      <a class="sidebar-link active" href="doctor-appointments.html"><span class="s-icon">📅</span> Appointments</a>
+      <a class="sidebar-link" href="doctor-patients.html"><span class="s-icon">👥</span> My Patients</a>
+      <a class="sidebar-link" href="doctor-notices.html"><span class="s-icon">📢</span> Notices</a>
+    </div>
+    <div class="sidebar-footer">
+      <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:flex-start;gap:8px;" onclick="HS.clearSession();window.location.href='login-doctor.html'">🚪 Sign Out</button>
+    </div>
+  </nav>
+  <div class="main-content">
+    <div class="page-header-row anim-fade-up">
+      <div class="page-header"><h1>All Appointments</h1><p>View and manage all patient appointments</p></div>
+      <select class="form-input" style="width:auto;" onchange="render(this.value)" id="status-filter">
+        <option value="">All Status</option>
+        <option value="pending">Pending</option>
+        <option value="scheduled">Scheduled</option>
+        <option value="completed">Completed</option>
+      </select>
+    </div>
+    <div class="card anim-fade-up-1">
+      <div id="appt-list"></div>
+    </div>
+  </div>
+</div>
+<div class="toast-wrap"></div>
+<script src="db.js"></script>
+<script>
+function init() {
+  const s = HS.requireAuth('doctor');
+  if (!s) return;
+  document.getElementById('topbar-placeholder').innerHTML = buildTopbar(s.user.name, 'doctor', s.user.color||'#16a34a');
+  render();
+}
+function render(statusFilter='') {
+  const s = HS.getSession();
+  let appts = HS.getAppointments().filter(a => a.doctorId === s.user.id);
+  if (statusFilter) appts = appts.filter(a => a.status === statusFilter);
+  const el = document.getElementById('appt-list');
+  el.innerHTML = appts.length ? appts.map(a => {
+    const pt = HS.getPatients().find(p => p.id === a.patientId);
+    return `<div class="appt-row">
+      <div class="appt-body">
+        <div class="appt-patient-name">👤 ${pt?.name||'Unknown'} <span class="chip" style="margin-left:6px;">${a.type}</span></div>
+        <div class="appt-date">${a.datetime ? '📅 '+HS.fmtDate(a.datetime) : '📋 Date not set yet'}</div>
+        <div class="appt-symp" style="margin-top:6px;"><strong>Symptoms:</strong> ${a.symptoms}</div>
+        ${pt ? `<div style="font-size:12px;color:var(--g400);margin-top:5px;">📞 ${pt.contact||'—'} · 🏙️ ${pt.city||'—'}</div>` : ''}
+      </div>
+      <div class="appt-actions" style="flex-direction:column;align-items:flex-end;gap:8px;">
+        ${renderBadge(a.status, HS.statusBadge(a.status))}
+        <div style="display:flex;gap:6px;">
+          ${a.status!=='completed' ? `<button class="btn btn-success btn-xs" onclick="markDone('${a.id}')">✓ Done</button>` : ''}
+          ${a.status==='pending' ? `<button class="btn btn-primary btn-xs" onclick="confirmAppt('${a.id}')">Confirm</button>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('') : '<div class="empty-state"><div class="empty-icon">📅</div><p>No appointments found.</p></div>';
+}
+function markDone(id) {
+  const appts = HS.getAppointments();
+  const a = appts.find(x => x.id === id);
+  if (a) { a.status = 'completed'; HS.saveAppointments(appts); }
+  render(document.getElementById('status-filter').value);
+  toast('Appointment completed!', 'success');
+}
+function confirmAppt(id) {
+  const appts = HS.getAppointments();
+  const a = appts.find(x => x.id === id);
+  if (a) { a.status = 'scheduled'; HS.saveAppointments(appts); }
+  render(document.getElementById('status-filter').value);
+  toast('Appointment confirmed!', 'success');
+}
+init();
+</script>
+</body>
+</html>

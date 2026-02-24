@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Doctor Login — HealthSetu</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --blue: #1a6bff;
+    --blue-dark: #1150cc;
+    --blue-light: #e8f0ff;
+    --green: #059669;
+    --green-light: #ecfdf5;
+    --green-border: #6ee7b7;
+    --white: #ffffff;
+    --g50: #f8fafc;
+    --g100: #f1f5f9;
+    --g200: #e2e8f0;
+    --g400: #94a3b8;
+    --g500: #64748b;
+    --g700: #334155;
+    --g900: #0f172a;
+  }
+  html, body { height: 100%; font-family: 'Outfit', sans-serif; background: #fff; overflow: hidden; }
+
+  /* ═══ INTRO ═══ */
+  .intro-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: linear-gradient(135deg, #0a2e1a 0%, #065f46 100%);
+    display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 14px;
+    animation: overlayExit 0.6s ease 2.2s forwards;
+  }
+  @keyframes overlayExit { to { opacity: 0; pointer-events: none; } }
+  .intro-logo { display: flex; align-items: center; gap: 14px; animation: pop 0.5s cubic-bezier(.34,1.56,.64,1) 0.3s both; }
+  @keyframes pop { from { opacity:0; transform:scale(.6) translateY(20px); } to { opacity:1; transform:scale(1) translateY(0); } }
+  .intro-icon { width:60px; height:60px; background:white; border-radius:16px; display:flex; align-items:center; justify-content:center; font-size:26px; color:#059669; box-shadow:0 8px 32px rgba(0,0,0,.2); }
+  .intro-name { font-size:32px; font-weight:800; color:white; }
+  .intro-tagline { font-size:13px; color:rgba(255,255,255,.6); letter-spacing:.1em; text-transform:uppercase; animation:pop .5s ease .7s both; }
+  .intro-bar { width:200px; height:3px; background:rgba(255,255,255,.2); border-radius:99px; overflow:hidden; margin-top:8px; animation:pop .4s ease .9s both; }
+  .intro-bar-fill { height:100%; background:#6ee7b7; animation:barFill 1.2s ease 1s forwards; width:0; }
+  @keyframes barFill { to { width:100%; } }
+
+  /* ═══ LAYOUT ═══ */
+  .page { display: grid; grid-template-columns: 1fr 1fr; height: 100vh; opacity: 0; animation: pageReveal 0.7s ease 2.6s forwards; }
+  @keyframes pageReveal { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+
+  /* ═══ LEFT ═══ */
+  .left-panel { background: white; display: flex; flex-direction: column; position: relative; overflow: hidden; }
+  .blue-topline { position:absolute; top:0; left:0; right:0; height:4px; background:linear-gradient(90deg,var(--blue),#10b981,var(--blue)); background-size:200%; animation:shimmer 3s linear infinite 3s; }
+  @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+  .left-panel::after { content:''; position:absolute; top:0; right:0; bottom:0; width:1px; background:linear-gradient(180deg,var(--blue) 0%,#d1fae5 40%,#d1fae5 60%,var(--blue) 100%); }
+
+  .photo-area { flex:1; padding:36px 40px 0; display:flex; flex-direction:column; }
+
+  .brand-mark { display:flex; align-items:center; gap:10px; margin-bottom:28px; animation:slideRight .6s ease 2.9s both; }
+  @keyframes slideRight { from{opacity:0;transform:translateX(-20px)} to{opacity:1;transform:translateX(0)} }
+  .brand-icon { width:40px; height:40px; background:var(--blue); border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:900; color:white; box-shadow:0 4px 14px rgba(26,107,255,.35); }
+  .brand-text { font-size:20px; font-weight:800; color:var(--g900); }
+  .brand-text span { color:var(--blue); }
+
+  .hero-heading { font-family:'Playfair Display',serif; font-size:32px; line-height:1.22; color:var(--g900); margin-bottom:10px; animation:slideRight .6s ease 3s both; }
+  .hero-heading em { color:var(--green); font-style:italic; }
+  .hero-sub { font-size:14px; color:var(--g500); line-height:1.7; max-width:320px; animation:slideRight .6s ease 3.1s both; }
+
+  /* Feature pills */
+  .feat-pills { display:flex; flex-wrap:wrap; gap:7px; margin-top:18px; animation:slideRight .6s ease 3.15s both; }
+  .feat-pill { background:var(--blue-light); color:var(--blue); border-radius:999px; padding:5px 12px; font-size:12px; font-weight:600; border:1px solid #bfd5ff; }
+
+  /* MAIN FEATURE PHOTO — big and dramatic */
+  .main-photo-wrap { flex:1; margin-top:20px; position:relative; min-height:0; animation:photosReveal .8s ease 3.2s both; }
+  @keyframes photosReveal { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+  .main-photo { width:100%; height:100%; object-fit:cover; border-radius:16px 16px 0 0; display:block; }
+  .main-photo-overlay { position:absolute; bottom:0; left:0; right:0; background:linear-gradient(transparent,rgba(9,30,44,.82)); border-radius:0 0 0 0; padding:30px 24px 20px; }
+  .mpo-stat { display:flex; gap:28px; }
+  .mpo-stat-item .num { font-size:26px; font-weight:800; color:white; }
+  .mpo-stat-item .lbl { font-size:11px; color:rgba(255,255,255,.6); text-transform:uppercase; letter-spacing:.06em; margin-top:2px; }
+  .mpo-divider { width:1px; background:rgba(255,255,255,.2); }
+
+  /* Small side thumbnails */
+  .thumb-row { position:absolute; right:14px; top:14px; display:flex; flex-direction:column; gap:8px; }
+  .thumb { width:70px; height:70px; border-radius:12px; overflow:hidden; border:3px solid white; box-shadow:0 4px 16px rgba(0,0,0,.18); }
+  .thumb img { width:100%; height:100%; object-fit:cover; object-position:top; }
+
+  /* ═══ RIGHT ═══ */
+  .right-panel { background:white; display:flex; align-items:center; justify-content:center; padding:40px 56px; position:relative; }
+  .right-panel::before { content:''; position:absolute; top:0; right:0; width:160px; height:160px; background-image:radial-gradient(circle,#c7ddff 1.5px,transparent 1.5px); background-size:18px 18px; opacity:.5; border-radius:0 0 0 100%; }
+  .right-panel::after { content:''; position:absolute; bottom:0; left:0; width:120px; height:120px; background-image:radial-gradient(circle,#bbf7d0 1.5px,transparent 1.5px); background-size:18px 18px; opacity:.4; border-radius:0 100% 0 0; }
+
+  .form-box { width:100%; max-width:380px; position:relative; z-index:1; animation:formSlideUp .7s ease 2.9s both; }
+  @keyframes formSlideUp { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
+
+  .role-pill { display:inline-flex; align-items:center; gap:8px; background:var(--green-light); color:var(--green); padding:6px 14px; border-radius:999px; font-size:12px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; margin-bottom:20px; border:1px solid var(--green-border); }
+  .role-dot { width:7px; height:7px; background:var(--green); border-radius:50%; animation:pulse 1.8s ease infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.8)} }
+
+  .form-title { font-size:28px; font-weight:800; color:var(--g900); margin-bottom:6px; }
+  .form-sub { font-size:14px; color:var(--g500); margin-bottom:28px; }
+  .title-line { width:48px; height:3px; background:linear-gradient(90deg,var(--blue),var(--green)); border-radius:99px; margin-bottom:28px; }
+
+  .demo-hint { background:var(--green-light); border:1px solid #a7f3d0; border-left:3px solid var(--green); border-radius:8px; padding:12px 14px; font-size:12.5px; color:#065f46; line-height:1.7; margin-bottom:22px; }
+  .demo-hint strong { color:#064e3b; }
+
+  .form-group { margin-bottom:18px; }
+  .form-label { display:block; font-size:13px; font-weight:600; color:var(--g700); margin-bottom:7px; }
+  .input-wrap { position:relative; }
+  .form-input { width:100%; padding:12px 16px; padding-right:44px; border:1.5px solid var(--g200); border-radius:10px; font-size:14px; font-family:'Outfit',sans-serif; color:var(--g900); background:white; transition:border-color .2s,box-shadow .2s; outline:none; }
+  .form-input:focus { border-color:var(--blue); box-shadow:0 0 0 3px rgba(26,107,255,.12); }
+  .form-input::placeholder { color:var(--g400); }
+  .pw-eye { position:absolute; right:13px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:var(--g400); font-size:17px; transition:color .2s; }
+  .pw-eye:hover { color:var(--g700); }
+
+  .btn-login { width:100%; padding:13px; background:var(--blue); color:white; border:none; border-radius:10px; font-size:15px; font-weight:700; font-family:'Outfit',sans-serif; cursor:pointer; transition:all .2s; box-shadow:0 4px 16px rgba(26,107,255,.3); display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:18px; }
+  .btn-login:hover { background:var(--blue-dark); box-shadow:0 6px 24px rgba(26,107,255,.4); transform:translateY(-1px); }
+  .btn-arrow { font-size:18px; transition:transform .2s; }
+  .btn-login:hover .btn-arrow { transform:translateX(4px); }
+  .spinner { width:16px; height:16px; border:2px solid rgba(255,255,255,.3); border-top-color:white; border-radius:50%; animation:spin .7s linear infinite; display:none; }
+  .btn-login.loading .spinner { display:block; }
+  .btn-login.loading .btn-text, .btn-login.loading .btn-arrow { display:none; }
+  .btn-login.loading { opacity:.85; pointer-events:none; }
+  @keyframes spin { to{transform:rotate(360deg)} }
+
+  .divider { display:flex; align-items:center; gap:12px; font-size:12px; color:var(--g400); margin-bottom:18px; }
+  .divider::before, .divider::after { content:''; flex:1; height:1px; background:var(--g200); }
+
+  .other-portals { display:flex; gap:10px; }
+  .portal-btn { flex:1; padding:10px 12px; background:var(--g50); border:1.5px solid var(--g200); border-radius:9px; font-size:13px; font-weight:600; color:var(--g600); cursor:pointer; font-family:'Outfit',sans-serif; transition:all .18s; text-align:center; text-decoration:none; display:block; }
+  .portal-btn:hover { border-color:var(--blue); color:var(--blue); background:var(--blue-light); }
+
+  .footer-note { margin-top:28px; padding-top:18px; border-top:1px solid var(--g100); display:flex; align-items:center; gap:8px; font-size:12px; color:var(--g400); }
+  .secure-badge { display:flex; align-items:center; gap:5px; background:#ecfdf5; border:1px solid #a7f3d0; border-radius:6px; padding:4px 10px; font-size:11px; font-weight:600; color:#166534; }
+
+  .toast-wrap { position:fixed; bottom:24px; right:24px; z-index:9999; display:flex; flex-direction:column; gap:8px; }
+  .toast { background:var(--g900); color:white; padding:12px 18px; border-radius:11px; font-size:14px; opacity:0; transform:translateY(10px); transition:all .28s; display:flex; align-items:center; gap:10px; box-shadow:0 8px 24px rgba(0,0,0,.2); min-width:260px; }
+  .toast.show { opacity:1; transform:translateY(0); }
+  .toast.t-error { border-left:4px solid #ef4444; }
+  .toast.t-success { border-left:4px solid #10b981; }
+
+  @media(max-width:768px){ .page{grid-template-columns:1fr} .left-panel{display:none} .right-panel{padding:32px 24px} }
+</style>
+</head>
+<body>
+
+<!-- INTRO -->
+<div class="intro-overlay">
+  <div class="intro-logo">
+    <div class="intro-icon">🩺</div>
+    <div class="intro-name" style="color:white;">HealthSetu</div>
+  </div>
+  <div class="intro-tagline">Doctor's Portal</div>
+  <div class="intro-bar"><div class="intro-bar-fill"></div></div>
+</div>
+
+<div class="page">
+  <!-- LEFT -->
+  <div class="left-panel">
+    <div class="blue-topline"></div>
+    <div class="photo-area">
+      <div class="brand-mark">
+        <div class="brand-icon">HS</div>
+        <div class="brand-text">Health<span>Setu</span></div>
+      </div>
+      <div class="hero-heading">Your Patients,<br>Your <em>Dashboard</em>,<br>Every Day.</div>
+      <p class="hero-sub">Manage appointments, prescribe medicines, access patient health records, and stay updated with hospital notices — all in one place.</p>
+      <div class="feat-pills">
+        <span class="feat-pill">📅 Daily Appointments</span>
+        <span class="feat-pill">💊 Prescribe Medicines</span>
+        <span class="feat-pill">⌚ Fitbit Health Data</span>
+        <span class="feat-pill">📢 Hospital Notices</span>
+      </div>
+      <div class="main-photo-wrap">
+        <img class="main-photo" src="https://images.unsplash.com/photo-1584467735867-4297ae2ebcee?w=700&q=80&auto=format&fit=crop&crop=center" alt="Doctors at work">
+        <div class="main-photo-overlay">
+          <div class="mpo-stat">
+            <div class="mpo-stat-item"><div class="num">1.2k+</div><div class="lbl">Patients Served</div></div>
+            <div class="mpo-divider"></div>
+            <div class="mpo-stat-item"><div class="num">48</div><div class="lbl">Specialist Doctors</div></div>
+            <div class="mpo-divider"></div>
+            <div class="mpo-stat-item"><div class="num">24/7</div><div class="lbl">Active Support</div></div>
+          </div>
+        </div>
+        <div class="thumb-row">
+          <div class="thumb"><img src="https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=200&q=80&auto=format&fit=crop" alt="Doctor"></div>
+          <div class="thumb"><img src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=200&q=80&auto=format&fit=crop" alt="Doctor"></div>
+          <div class="thumb"><img src="https://images.unsplash.com/photo-1594824476967-48c8b964273f?w=200&q=80&auto=format&fit=crop" alt="Doctor"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right-panel">
+    <div class="form-box">
+      <div class="role-pill"><div class="role-dot"></div>Doctor Portal</div>
+      <div class="form-title">Doctor Sign In</div>
+      <p class="form-sub">Use credentials provided by your hospital administrator</p>
+      <div class="title-line"></div>
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <div class="input-wrap">
+          <input class="form-input" type="email" id="email" placeholder="doctor@hospital.com">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <div class="input-wrap">
+          <input class="form-input" type="password" id="pw" placeholder="Your password">
+          <button class="pw-eye" onclick="togglePw()" id="pw-btn">Show</button>
+        </div>
+      </div>
+      <button class="btn-login" id="login-btn" onclick="doLogin()">
+        <span class="btn-text">Sign In to Doctor Portal</span>
+        <span class="btn-arrow">→</span>
+        <div class="spinner"></div>
+      </button>
+      <div class="divider">or access another portal</div>
+      <div class="other-portals">
+        <a class="portal-btn" href="login-admin.html">🛡️ Admin Login</a>
+        <a class="portal-btn" href="login-patient.html">🧑‍💼 Patient Login</a>
+      </div>
+      <div class="footer-note">
+        <div class="secure-badge">🔒 SSL Secured</div>
+        <span>HealthSetu v2.0 · HIPAA Compliant</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toast-wrap"></div>
+<script>
+  setTimeout(() => { const el = document.querySelector('.intro-overlay'); if(el) el.remove(); }, 3200);
+
+  function togglePw() {
+    const inp = document.getElementById('pw'), btn = document.getElementById('pw-btn');
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+    btn.textContent = inp.type === 'password' ? 'Show' : 'Hide';
+  }
+
+  function toast(msg, type='info') {
+    const wrap = document.getElementById('toast-wrap');
+    const icons = {success:'✅',error:'❌',info:'ℹ️'};
+    const el = document.createElement('div');
+    el.className = `toast t-${type}`;
+    el.innerHTML = `<span>${icons[type]}</span><span>${msg}</span>`;
+    wrap.appendChild(el);
+    setTimeout(() => el.classList.add('show'), 10);
+    setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 300); }, 3800);
+  }
+
+  function getHS(key) { try { return JSON.parse(localStorage.getItem('hs_'+key)); } catch { return null; } }
+
+  function doLogin() {
+    const email = document.getElementById('email').value.trim().toLowerCase();
+    const pw = document.getElementById('pw').value;
+    if (!email || !pw) { toast('Please enter email and password', 'error'); return; }
+    const btn = document.getElementById('login-btn');
+    btn.classList.add('loading');
+    setTimeout(() => {
+      btn.classList.remove('loading');
+      const doctors = getHS('doctors') || [];
+      const doc = doctors.find(d => d.email.toLowerCase() === email && d.password === pw);
+      if (doc) {
+        localStorage.setItem('hs_session', JSON.stringify({ user: doc, role: 'doctor', time: Date.now() }));
+        toast('Welcome, ' + doc.name + '!', 'success');
+        setTimeout(() => { window.location.href = 'doctor-dashboard.html'; }, 900);
+      } else {
+        toast('Invalid doctor credentials. Contact your admin.', 'error');
+      }
+    }, 1200);
+  }
+
+  document.getElementById('pw').addEventListener('keypress', e => { if(e.key==='Enter') doLogin(); });
+</script>
+</body>
+</html>
