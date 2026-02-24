@@ -33,6 +33,9 @@ jobs:
           cp -v *.html _site/
           cp -v *.css _site/
           cp -v *.js _site/
+          echo "Published files:"
+          ls -la _site
+          test -f _site/index.html
 
       - name: Upload static site artifact
         uses: actions/upload-pages-artifact@v3
