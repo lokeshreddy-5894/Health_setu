@@ -4,9 +4,551 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>HealthSetu</title>
-  <meta http-equiv="refresh" content="0; url=login-patient.html">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --blue: #2f75ea;
+      --blue-dark: #1f62cf;
+      --ink: #0f172a;
+      --muted: #334155;
+      --muted-2: #64748b;
+      --line: #dbe3ee;
+      --grid: rgba(148, 163, 184, 0.14);
+      --bg: #f8fafc;
+      --topbar-offset: 66px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: "Outfit", sans-serif;
+      color: var(--ink);
+      background:
+        linear-gradient(0deg, var(--grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid) 1px, transparent 1px),
+        var(--bg);
+      background-size: 32px 32px, 32px 32px, auto;
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+    .topbar {
+      height: 66px;
+      background: #fff;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 22px;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 200;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: inherit;
+    }
+    .logo-box {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: var(--blue);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 800;
+    }
+    .brand-name { font-size: 18px; font-weight: 800; line-height: 1; color: #111827; }
+    .brand-name span { color: var(--blue); }
+
+    .nav-links { display: flex; gap: 34px; font-size: 16px; color: #374151; flex-wrap: nowrap; white-space: nowrap; }
+    .nav-links a { color: inherit; text-decoration: none; font-weight: 500; display: inline-flex; }
+    .nav-links a.active { color: var(--blue); font-weight: 700; }
+
+    .auth { display: flex; align-items: center; gap: 18px; font-size: 16px; }
+    .auth-login { text-decoration: none; color: var(--blue); font-weight: 600; }
+    .auth-register {
+      text-decoration: none;
+      color: #fff;
+      background: var(--blue);
+      border: 1px solid #3b82f6;
+      border-radius: 11px;
+      padding: 10px 17px;
+      font-weight: 600;
+    }
+
+    .announce {
+      height: 38px;
+      background: var(--blue);
+      border-bottom: 1px solid #2a69cf;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 500;
+      margin-top: var(--topbar-offset);
+    }
+
+    #home,
+    #services,
+    #about,
+    #contact {
+      scroll-margin-top: calc(var(--topbar-offset) + 8px);
+    }
+
+    .page {
+      min-height: calc(100vh - 104px);
+      max-width: 1630px;
+      margin: 0 auto;
+      padding: 54px 10px 12px;
+      display: block;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.04fr 0.96fr;
+      gap: 14px;
+      min-height: 0;
+    }
+
+    .left-pane { min-height: 0; display: flex; flex-direction: column; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      border-radius: 999px;
+      background: #dbeafe;
+      color: #1d4ed8;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 10px 18px;
+      margin-bottom: 22px;
+      width: fit-content;
+    }
+    .badge::before {
+      content: "";
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--blue);
+    }
+    h1 {
+      font-size: 64px;
+      line-height: 1.04;
+      letter-spacing: -0.03em;
+      font-weight: 800;
+      margin-bottom: 20px;
+    }
+    h1 .accent { color: var(--blue); display: block; }
+    .lead {
+      max-width: 610px;
+      color: var(--muted);
+      font-size: 17px;
+      line-height: 1.4;
+      margin-bottom: 26px;
+    }
+    .actions { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+    .btn {
+      text-decoration: none;
+      border-radius: 14px;
+      padding: 13px 36px;
+      font-size: 16px;
+      font-weight: 700;
+      border: 2px solid #3b82f6;
+    }
+    .btn-primary {
+      background: var(--blue);
+      color: #fff;
+      box-shadow: 0 8px 18px rgba(47, 117, 234, 0.22);
+    }
+    .btn-primary:hover { background: var(--blue-dark); }
+    .btn-outline { color: #2563eb; background: transparent; }
+
+    .quick-points {
+      margin-top: auto;
+      display: flex;
+      gap: 28px;
+      flex-wrap: wrap;
+      color: var(--muted-2);
+      font-size: 14px;
+    }
+    .quick-point { display: inline-flex; align-items: center; gap: 8px; }
+    .point-mark { color: #2563eb; font-weight: 800; font-size: 17px; line-height: 1; }
+
+    .media-grid {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 138px 182px 138px;
+      gap: 12px;
+      margin-top: 2px;
+    }
+    .card {
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid #cbd5e1;
+      box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
+      background: #fff;
+    }
+    .card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .card-top-left { grid-column: 1; grid-row: 1; }
+    .card-mid-left { grid-column: 1; grid-row: 2 / 4; }
+    .card-right-tall { grid-column: 2; grid-row: 1 / 3; }
+    .card-bottom-right { grid-column: 2; grid-row: 3; }
+
+    .section-wrap {
+      max-width: 1630px;
+      margin: 0 auto;
+      padding: 4px 10px 84px;
+      display: block;
+    }
+    .info-section {
+      border: 1px solid #d7e3f2;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.86);
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 44% 56%;
+      min-height: calc(100vh - 132px);
+      margin-bottom: 16px;
+    }
+    .info-photo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .info-body {
+      padding: 34px 34px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 18px;
+    }
+    .tag {
+      display: inline-flex;
+      width: fit-content;
+      border-radius: 999px;
+      background: #dbeafe;
+      color: #1e40af;
+      font-size: 14px;
+      font-weight: 700;
+      padding: 6px 12px;
+    }
+    .section-title {
+      font-size: 64px;
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+      font-weight: 800;
+      color: #0f172a;
+    }
+    .section-text { color: var(--muted); font-size: 25px; line-height: 1.45; max-width: 930px; }
+    .section-list { color: #64748b; font-size: 22px; line-height: 1.45; }
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 4px;
+    }
+    .detail-card {
+      border: 1px solid #d7e3f2;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #ffffff;
+      display: grid;
+      grid-template-columns: 132px 1fr;
+      min-height: 120px;
+    }
+    .detail-photo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .detail-body {
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 6px;
+    }
+    .detail-title {
+      font-size: 19px;
+      font-weight: 700;
+      line-height: 1.15;
+      color: #0f172a;
+    }
+    .detail-text {
+      font-size: 14px;
+      line-height: 1.35;
+      color: #475569;
+    }
+
+    .floating-cta {
+      position: fixed;
+      right: 14px;
+      bottom: 12px;
+      background: var(--blue);
+      color: #fff;
+      text-decoration: none;
+      border: 1px solid #3b82f6;
+      border-radius: 999px;
+      padding: 11px 26px;
+      font-size: 14px;
+      font-weight: 600;
+      box-shadow: 0 8px 20px rgba(47, 117, 234, 0.28);
+    }
+
+    @media (max-width: 1320px) {
+      .page {
+        height: auto;
+        padding-bottom: 84px;
+      }
+      .hero { grid-template-columns: 1fr; }
+      .section-wrap { padding-top: 0; }
+      .info-section { grid-template-columns: 1fr; }
+      .info-section { min-height: auto; }
+      .info-photo { height: 260px; }
+      .info-body { padding: 22px; gap: 12px; }
+      .section-title { font-size: 38px; }
+      .section-text, .section-list { font-size: 18px; }
+      .detail-grid { grid-template-columns: 1fr; }
+      .detail-card { grid-template-columns: 120px 1fr; }
+    }
+
+    @media (max-width: 900px) {
+      .topbar { height: auto; gap: 10px; flex-wrap: wrap; padding: 10px 14px; }
+      .brand-name { font-size: 26px; }
+      .logo-box { width: 34px; height: 34px; font-size: 16px; }
+      .nav-links, .auth { font-size: 14px; gap: 12px; }
+      .nav-links { overflow-x: auto; scrollbar-width: none; }
+      .nav-links::-webkit-scrollbar { display: none; }
+      .auth-register { padding: 8px 10px; }
+      .announce { font-size: 12px; height: 34px; text-align: center; padding: 0 10px; }
+      .page { padding: 14px; }
+      h1 { font-size: 48px; }
+      .lead { font-size: 18px; }
+      .actions { flex-wrap: wrap; }
+      .btn { font-size: 17px; padding: 12px 20px; }
+      .quick-points { font-size: 16px; gap: 14px; }
+      .media-grid { min-height: 360px; }
+      .floating-cta { font-size: 16px; padding: 10px 18px; }
+      .section-title { font-size: 30px; }
+      .section-text, .section-list { font-size: 16px; }
+      .detail-title { font-size: 17px; }
+      .detail-text { font-size: 13px; }
+    }
+  </style>
 </head>
 <body>
-  <p>Redirecting to <a href="login-patient.html">login page</a>...</p>
+
+  <header class="topbar">
+    <a class="brand" href="index.html">
+      <div class="logo-box"><svg viewBox="0 0 64 64" width="22" height="22" aria-hidden="true"><rect x="8" y="24" width="24" height="16" rx="8" fill="#29b6f6"/><rect x="32" y="24" width="24" height="16" rx="8" fill="#29b6f6"/><rect x="24" y="8" width="16" height="24" rx="8" fill="#ff0a6c"/><rect x="24" y="32" width="16" height="24" rx="8" fill="#ff0a6c"/><rect x="27" y="18" width="10" height="28" fill="#1a2433"/><rect x="18" y="27" width="28" height="10" fill="#1a2433"/></svg></div>
+      <div class="brand-name">Health<span>Setu</span></div>
+    </a>
+
+    <nav class="nav-links">
+      <a href="#home" data-nav="home" class="active">Home</a>
+      <a href="#services" data-nav="services">Services</a>
+      <a href="#about" data-nav="about">About</a>
+      <a href="#contact" data-nav="contact">Contact</a>
+    </nav>
+
+    <div class="auth">
+      <a class="auth-login" href="login-patient.html">Login</a>
+      <a class="auth-register" href="login-patient.html">Register</a>
+    </div>
+  </header>
+
+  <div class="announce">Scheduled Appointment Booking: Fast and Efficient</div>
+
+  <main class="page" id="home">
+    <section class="hero" id="home-section">
+      <div class="left-pane">
+        <div class="badge">24/7 Healthcare Assistance Available</div>
+        <h1>
+          Better Care,
+          <span class="accent">Smarter Management</span>
+        </h1>
+        <p class="lead">
+          Optimizing hospital operations for seamless patient care.
+          Schedule appointments, manage inventory, and ensure
+          timely treatment with our integrated healthcare system.
+        </p>
+        <div class="actions">
+          <a class="btn btn-primary" href="login-patient.html">Book an Appointment -></a>
+          <a class="btn btn-outline" href="login-patient.html">Get Started -></a>
+        </div>
+        <div class="quick-points">
+          <div class="quick-point"><span class="point-mark">*</span> AI-Powered Smart Queuing for Appointments</div>
+          <div class="quick-point"><span class="point-mark">+</span> Real-Time Fitbit Health Data Sync</div>
+        </div>
+      </div>
+
+      <div class="media-grid">
+        <div class="card card-top-left">
+          <img src="https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&amp;fit=crop&amp;w=1200&amp;q=80" alt="Medicines">
+        </div>
+        <div class="card card-mid-left">
+          <img src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&amp;fit=crop&amp;w=1200&amp;q=80" alt="Inventory">
+        </div>
+        <div class="card card-right-tall">
+          <img src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&amp;fit=crop&amp;w=1200&amp;q=80" alt="Doctor">
+        </div>
+        <div class="card card-bottom-right">
+          <img src="https://images.unsplash.com/photo-1584515933487-779824d29309?auto=format&amp;fit=crop&amp;w=1200&amp;q=80" alt="Consultation">
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <section class="section-wrap">
+    <article class="info-section" id="services">
+      <div class="info-photo">
+        <img src="https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&amp;fit=crop&amp;w=1200&amp;q=80" alt="Services">
+      </div>
+      <div class="info-body">
+        <span class="tag">Services</span>
+        <h2 class="section-title">Integrated Hospital Services</h2>
+        <p class="section-text">Appointment automation, medicine inventory tracking, digital records, and doctor scheduling in one connected platform.</p>
+        <p class="section-list">Booking Engine | Inventory Alerts | Smart Queue | Reports</p>
+        <div class="detail-grid">
+          <article class="detail-card">
+            <div class="detail-photo">
+              <img src="https://images.unsplash.com/photo-1516549655169-df83a0774514?auto=format&amp;fit=crop&amp;w=900&amp;q=80" alt="Digital scheduling">
+            </div>
+            <div class="detail-body">
+              <h3 class="detail-title">Digital OPD Scheduling</h3>
+              <p class="detail-text">Automated slot assignment with queue balancing for faster patient movement.</p>
+            </div>
+          </article>
+          <article class="detail-card">
+            <div class="detail-photo">
+              <img src="https://images.unsplash.com/photo-1587854692152-cbe660dbde88?auto=format&amp;fit=crop&amp;w=900&amp;q=80" alt="Pharmacy counter">
+            </div>
+            <div class="detail-body">
+              <h3 class="detail-title">Pharmacy Workflow</h3>
+              <p class="detail-text">Prescription-linked dispensing with live medicine availability and alerts.</p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </article>
+
+    <article class="info-section" id="about">
+      <div class="info-photo">
+        <img src="https://images.unsplash.com/photo-1586773860418-d37222d8fce3?auto=format&amp;fit=crop&amp;w=1200&amp;q=80" alt="About">
+      </div>
+      <div class="info-body">
+        <span class="tag">About</span>
+        <h2 class="section-title">Built for Reliable Care Delivery</h2>
+        <p class="section-text">HealthSetu supports hospitals with clear workflows, actionable dashboards, and secure collaboration for every role.</p>
+        <p class="section-list">Admin Portal | Doctor Portal | Patient Portal | Audit-ready</p>
+        <div class="detail-grid">
+          <article class="detail-card">
+            <div class="detail-photo">
+              <img src="https://images.unsplash.com/photo-1538108149393-fbbd81895907?auto=format&amp;fit=crop&amp;w=900&amp;q=80" alt="Hospital operations">
+            </div>
+            <div class="detail-body">
+              <h3 class="detail-title">Operational Visibility</h3>
+              <p class="detail-text">Department-level dashboards for appointments, bed utilization, and care timelines.</p>
+            </div>
+          </article>
+          <article class="detail-card">
+            <div class="detail-photo">
+              <img src="https://images.unsplash.com/photo-1527613426441-4da17471b66d?auto=format&amp;fit=crop&amp;w=900&amp;q=80" alt="Secure systems">
+            </div>
+            <div class="detail-body">
+              <h3 class="detail-title">Secure By Design</h3>
+              <p class="detail-text">Role-based access and encrypted patient data handling for compliance-ready usage.</p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </article>
+
+    <article class="info-section" id="contact">
+      <div class="info-photo">
+        <img src="https://images.unsplash.com/photo-1526256262350-7da7584cf5eb?auto=format&amp;fit=crop&amp;w=1200&amp;q=80" alt="Contact">
+      </div>
+      <div class="info-body">
+        <span class="tag">Contact</span>
+        <h2 class="section-title">Support and Onboarding</h2>
+        <p class="section-text">Get implementation support, training, and technical help from our healthcare platform specialists.</p>
+        <p class="section-list">support@healthsetu.com | +1 (800) 555-0199 | Mon-Sat 9AM-8PM</p>
+        <div class="detail-grid">
+          <article class="detail-card">
+            <div class="detail-photo">
+              <img src="https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&amp;fit=crop&amp;w=900&amp;q=80" alt="Support team">
+            </div>
+            <div class="detail-body">
+              <h3 class="detail-title">Implementation Team</h3>
+              <p class="detail-text">Go-live setup, data migration, and staff training with dedicated onboarding experts.</p>
+            </div>
+          </article>
+          <article class="detail-card">
+            <div class="detail-photo">
+              <img src="https://images.unsplash.com/photo-1552581234-26160f608093?auto=format&amp;fit=crop&amp;w=900&amp;q=80" alt="Helpdesk">
+            </div>
+            <div class="detail-body">
+              <h3 class="detail-title">24x7 Helpdesk</h3>
+              <p class="detail-text">Priority issue handling for critical hospital workflows and patient-facing systems.</p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <a class="floating-cta" href="login-patient.html">Book Appointment</a>
+  <script>
+    const topbar = document.querySelector(".topbar");
+    const updateTopbarOffset = () => {
+      if (!topbar) return;
+      document.documentElement.style.setProperty("--topbar-offset", `${topbar.offsetHeight}px`);
+    };
+    updateTopbarOffset();
+    window.addEventListener("resize", updateTopbarOffset);
+
+    const links = Array.from(document.querySelectorAll(".nav-links a[data-nav]"));
+    const sections = [
+      { id: "home", el: document.getElementById("home") },
+      { id: "services", el: document.getElementById("services") },
+      { id: "about", el: document.getElementById("about") },
+      { id: "contact", el: document.getElementById("contact") }
+    ];
+
+    const setActive = (id) => {
+      links.forEach((link) => {
+        link.classList.toggle("active", link.dataset.nav === id);
+      });
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      const visible = entries
+        .filter((entry) => entry.isIntersecting)
+        .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+      if (visible[0]) setActive(visible[0].target.id);
+    }, { threshold: [0.35, 0.6] });
+
+    sections.forEach((s) => s.el && observer.observe(s.el));
+  </script>
 </body>
 </html>
