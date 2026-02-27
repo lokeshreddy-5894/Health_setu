@@ -2,11 +2,18 @@
   "name": "healthsetu",
   "version": "1.0.0",
   "private": true,
+  "main": "server.js",
   "scripts": {
+    "start": "node server.js",
     "lint:html": "htmlhint \"**/*.html\"",
     "lint:css": "stylelint \"styles.css\"",
     "lint:js": "node scripts/lint-js-syntax.mjs",
     "ci": "npm run lint:html && npm run lint:css && npm run lint:js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "pg": "^8.13.3"
   },
   "devDependencies": {
     "htmlhint": "^1.6.4",
